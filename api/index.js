@@ -5,6 +5,7 @@ import { connectDb, closeDb } from './db.js';
 
 export async function createApp() {
     const app = express();
+    app.use(express.json());
 
     app.get('/', (_req, res) => {
         res.send('Welcome to DormDash API');
