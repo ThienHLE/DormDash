@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import { readdirSync } from 'fs';
 import { connectDb, closeDb } from './db.js';
