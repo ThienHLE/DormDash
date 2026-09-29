@@ -4,10 +4,12 @@ import {
   Label,
   TextField,
 } from "@heroui/react";
+
+import { Link } from "react-router-dom";
 import "../css/login.css";
 
 function Login() {
-    return (
+  return (
     <div className="login1-page">
       <div className="login1-card">
 
@@ -68,9 +70,12 @@ function Login() {
           <p className="login1-signup-text">
             Don't have an account?{" "}
 
-            <button className="login1-signup-link">
+            <Link
+              to="/register"
+              className="login1-signup-link"
+            >
               Create one
-            </button>
+            </Link>
           </p>
 
         </div>
@@ -79,4 +84,4 @@ function Login() {
   );
 }
 
-export default Login
+export default Login;

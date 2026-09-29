@@ -1,0 +1,126 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+
+
+.register-page {
+  min-height: 100vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background-color: #f1f5f9;
+}
+
+
+.register-card {
+  width: 100%;
+  max-width: 448px;
+
+  padding: 32px;
+
+  background-color: white;
+
+  border-radius: 24px;
+
+  box-shadow:
+    0 20px 25px -5px rgb(0 0 0 / 0.1),
+    0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+
+.register-header {
+  margin-bottom: 32px;
+
+  text-align: center;
+}
+
+
+.register-logo {
+  width: 64px;
+  height: 64px;
+
+  margin: 0 auto 16px auto;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 16px;
+
+  background-color: #1e40af;
+  color: white;
+
+  font-size: 20px;
+  font-weight: 700;
+}
+
+
+.register-title {
+  margin: 0;
+
+  color: #0f172a;
+
+  font-size: 30px;
+  font-weight: 700;
+}
+
+
+.register-subtitle {
+  margin-top: 8px;
+  margin-bottom: 0;
+
+  color: #64748b;
+}
+
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+
+  gap: 20px;
+}
+
+
+.register-input {
+  width: 100%;
+
+  margin-top: 8px;
+}
+
+
+.register-button {
+  width: 100%;
+
+  justify-content: center;
+
+  background-color: #1e40af;
+  color: white;
+}
+
+
+.register-login-text {
+  margin: 0;
+
+  text-align: center;
+
+  color: #64748b;
+
+  font-size: 14px;
+}
+
+
+.register-login-link {
+  color: #1e40af;
+
+  font-weight: 600;
+
+  text-decoration: none;
+}
+
+
+.register-login-link:hover {
+  text-decoration: underline;
+}
