@@ -7,3 +7,26 @@
   font-size: 28px;
   margin: 0 0 16px;
 }
+
+.newrequest-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 420px;
+}
+
+.newrequest-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.newrequest-label select {
+  padding: 8px;
+  font-size: 16px;
+}
+
+.newrequest-error {
+  color: #c0392b;
+  font-size: 14px;
+}
