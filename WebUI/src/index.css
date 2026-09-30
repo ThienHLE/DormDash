@@ -1,0 +1,35 @@
+@import "tailwindcss"; 
+@import "@heroui/styles";
+
+@theme {
+   
+  /* brand */
+  --color-primary: #1e40af;
+  --color-primary-hover: #1e3a8a;
+  --color-primary-light: #dbeafe;
+
+  /* surfaces */
+  --color-background: #f9fafb;
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+
+  /* text */
+  --color-ink: #0f172a;     /* headings, main text */
+  --color-body: #475569;    /* secondary text */
+  --color-muted: #64748b;   /* hints, captions */
+
+  /* status */
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+
+  /* spacing + shape */
+  --spacing-page: 1.5rem;
+  --spacing-section: 2rem;
+  --radius-card: 1.5rem;
+
+}
+
+@layer base {
+    body{@apply bg-background text-ink}
+}
