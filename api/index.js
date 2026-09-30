@@ -1,12 +1,24 @@
 import 'dotenv/config';
 import express from 'express';
+import session from 'express-session';
+import MongoStore from 'connect-mongo';
 import { readdirSync } from 'fs';
-import { connectDb, closeDb } from './db.js';
+import { connectDb, closeDb, getClient } from './db.js';
 
-export async function createApp() {
+export async function createApp({ sessionStore } = {}) {
     const app = express();
     app.use(express.json());
+    // Allows Express to read JSON request bodies.
+    app.use(express.json());
 
+    // Configures session-based authentication.
+    app.use(session({
+        secret: process.env.SESSION_SECRET ?? 'dormdrop-dev-secret',
+        resave: false,
+        saveUninitialized: false,
+        store: sessionStore,
+        cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 }
+    }));
     app.get('/', (_req, res) => {
         res.send('Welcome to DormDash API');
     });
@@ -24,7 +36,7 @@ if (process.env.NODE_ENV !== 'test') {
     await connectDb();
     console.log('Connected to MongoDB');
 
-    const app = await createApp();
+    const app = await createApp({ sessionStore: MongoStore.create({ client: getClient(), dbName: 'dormdash' }) });
     const port = process.env.PORT ?? 3000;
     const server = app.listen(port, () => {
         console.log(`Server running on port ${port}`);
