@@ -8,19 +8,19 @@ const validId = (value) => typeof value === 'string' && /^[a-f\d]{24}$/i.test(va
 const reply = (res, statusCode, message, data = null) =>
     res.status(statusCode).json({ statusCode, message, data });
 
-// POST /api/v1/requests/list  return available, unassigned delivery requests.
+// POST /api/v1/requests/list: return open, unassigned deliveries (tip is in cents).
 router.post('/list', async (_req, res) => {
-    const requests = await getDb().collection('requests').find({
-        status: 'available',
+    const requests = await getDb().collection('deliveries').find({
+        status: 'open',
         courierId: null,
     }).toArray();
     return reply(res, 200, 'Available delivery requests retrieved', requests);
 });
 
-// POST /api/v1/requests/:id/detai return a delivery and its current status.
+// POST /api/v1/requests/:id/detail: return a delivery and its current status.
 router.post('/:id/detail', async (req, res) => {
     if (!validId(req.params.id)) return reply(res, 400, 'Invalid request ID');
-    const delivery = await getDb().collection('requests').findOne({
+    const delivery = await getDb().collection('deliveries').findOne({
         _id: new ObjectId(req.params.id),
     });
     if (!delivery) return reply(res, 404, 'Delivery request not found');
@@ -33,11 +33,14 @@ router.post('/:id/accept', async (req, res) => {
     // Temporary local-testing. Replace with authenticated user identity later.
     if (!validId(req.body?.courierId)) return reply(res, 400, 'A valid courierId is required');
 
-    const collection = getDb().collection('requests');
+    const collection = getDb().collection('deliveries');
     const _id = new ObjectId(req.params.id);
     const delivery = await collection.findOneAndUpdate(
-        { _id, status: 'available', courierId: null },
-        { $set: { courierId: new ObjectId(req.body.courierId), status: 'accepted' } },
+        { _id, status: 'open', courierId: null },
+        {
+            $set: { courierId: new ObjectId(req.body.courierId), status: 'accepted' },
+            $currentDate: { updatedAt: true },
+        },
         { returnDocument: 'after', includeResultMetadata: false },
     );
     if (delivery) return reply(res, 200, 'Delivery request accepted', delivery);
