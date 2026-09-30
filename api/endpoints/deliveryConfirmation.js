@@ -1,93 +1,175 @@
 import express from 'express';
+import { ObjectId } from 'mongodb';
 import { randomInt, timingSafeEqual } from 'crypto';
 import { getDb } from '../db.js';
-
 const router = express.Router();
-router.use(express.json());
 
 const CODE_LENGTH = 6;
 const MAX_ATTEMPTS = 5;
 
-const codes = getDb().collection('confirmationCodes');
-
-function isNonEmptyString(value) {
-    return typeof value === 'string' && value.trim() !== '';
-}
-
-// Called by the user who requested the delivery.
-// Body: { orderId, userId }
+// Generates a confirmation code for the user who requested the delivery.
 router.post('/generateCode', async (req, res) => {
-    const { orderId, userId } = req.body ?? {};
-    if (!isNonEmptyString(orderId) || !isNonEmptyString(userId)) {
-        return res.status(400).json({ error: 'orderId and userId are required' });
+    const { deliveryId, userId } = req.body;
+
+    if (!ObjectId.isValid(deliveryId) || !ObjectId.isValid(userId)) {
+        return res.status(400).json({
+            statusCode: 400,
+            statusMessage: 'Delivery ID and user ID must be valid MongoDB ObjectIds.',
+            content: {}
+        });
     }
 
-    // TODO: Verify user is NOT a driver once users/orders collections exist.
+    try {
+        const db = getDb();
 
-    const existing = await codes.findOne({ orderId });
-    if (existing && existing.userId !== userId) {
-        return res.status(403).json({ error: 'Only the user who requested this delivery can generate its code' });
+        const delivery = await db.collection('deliveries').findOne({ _id: new ObjectId(deliveryId) });
+        if (!delivery) {
+            return res.status(404).json({
+                statusCode: 404,
+                statusMessage: 'Delivery not found.',
+                content: {}
+            });
+        }
+
+        if (!delivery.requesterId.equals(userId)) {
+            return res.status(403).json({
+                statusCode: 403,
+                statusMessage: 'Only the user who requested this delivery can generate its code.',
+                content: {}
+            });
+        }
+
+        const existing = await db.collection('confirmationCodes').findOne({ deliveryId: delivery._id });
+        if (existing?.confirmed) {
+            return res.status(409).json({
+                statusCode: 409,
+                statusMessage: 'Delivery has already been confirmed.',
+                content: {}
+            });
+        }
+
+        // Requesting again replaces the old code and resets the attempt counter.
+        const code = randomInt(0, 10 ** CODE_LENGTH).toString().padStart(CODE_LENGTH, '0');
+        await db.collection('confirmationCodes').updateOne(
+            { deliveryId: delivery._id },
+            { $set: { userId: delivery.requesterId, code, attempts: 0, confirmed: false, createdAt: new Date() } },
+            { upsert: true }
+        );
+
+        return res.status(201).json({
+            statusCode: 201,
+            statusMessage: 'Confirmation code generated successfully.',
+            content: { deliveryId: delivery._id, code }
+        });
+
+    } catch (error) {
+        console.error('Failed to generate confirmation code:', error);
+
+        return res.status(500).json({
+            statusCode: 500,
+            statusMessage: 'Failed to generate confirmation code.',
+            content: {}
+        });
     }
-    if (existing?.confirmed) {
-        return res.status(409).json({ error: 'Delivery has already been confirmed' });
-    }
-
-    // Requesting again replaces the old code and resets the attempt counter.
-    const code = randomInt(0, 10 ** CODE_LENGTH).toString().padStart(CODE_LENGTH, '0');
-    await codes.updateOne(
-        { orderId },
-        {
-            $set: { userId, code, attempts: 0, confirmed: false, createdAt: new Date() },
-        },
-        { upsert: true },
-    );
-
-    res.status(201).json({ orderId, code });
 });
 
-// Called by the driver, using the code the requester gave them.
-// Body: { orderId, userId, code }
+// Confirms a delivery using the code the requester gave the courier.
 router.post('/confirmCode', async (req, res) => {
-    const { orderId, userId, code } = req.body ?? {};
-    if (!isNonEmptyString(orderId) || !isNonEmptyString(userId) || !isNonEmptyString(code)) {
-        return res.status(400).json({ error: 'orderId, userId and code are required' });
+    const { deliveryId, userId, code } = req.body;
+
+    if (!ObjectId.isValid(deliveryId) || !ObjectId.isValid(userId) || typeof code !== 'string' || !code.trim()) {
+        return res.status(400).json({
+            statusCode: 400,
+            statusMessage: 'Delivery ID, user ID, and code are required.',
+            content: {}
+        });
     }
 
-    // TODO: Verify user is the driver assigned to this order once users/orders collections exist.
+    try {
+        const db = getDb();
 
-    const record = await codes.findOne({ orderId });
-    if (!record) {
-        return res.status(404).json({ error: 'No confirmation code exists for this order' });
-    }
-    if (record.userId === userId) {
-        return res.status(403).json({ error: 'The requester cannot confirm their own delivery' });
-    }
-    if (record.confirmed) {
-        return res.status(409).json({ error: 'Delivery has already been confirmed' });
-    }
-    if (record.attempts >= MAX_ATTEMPTS) {
-        return res.status(429).json({ error: 'Too many failed attempts; the requester must generate a new code' });
-    }
+        const delivery = await db.collection('deliveries').findOne({ _id: new ObjectId(deliveryId) });
+        if (!delivery) {
+            return res.status(404).json({
+                statusCode: 404,
+                statusMessage: 'Delivery not found.',
+                content: {}
+            });
+        }
 
-    // Constant-time compare so response timing doesn't leak how many digits matched.
-    const expected = Buffer.from(record.code);
-    const actual = Buffer.from(code.trim());
-    if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
-        await codes.updateOne({ _id: record._id }, { $inc: { attempts: 1 } });
-        const attemptsLeft = MAX_ATTEMPTS - record.attempts - 1;
-        return res.status(401).json({ error: 'Incorrect code', attemptsLeft });
-    }
+        if (!delivery.courierId?.equals(userId)) {
+            return res.status(403).json({
+                statusCode: 403,
+                statusMessage: 'Only the courier assigned to this delivery can confirm it.',
+                content: {}
+            });
+        }
 
-    // Filter on confirmed: false so two simultaneous confirms can't both succeed.
-    const result = await codes.updateOne(
-        { _id: record._id, confirmed: false },
-        { $set: { confirmed: true, confirmedBy: userId, confirmedAt: new Date() } },
-    );
-    if (result.modifiedCount === 0) {
-        return res.status(409).json({ error: 'Delivery has already been confirmed' });
-    }
+        const record = await db.collection('confirmationCodes').findOne({ deliveryId: delivery._id });
+        if (!record) {
+            return res.status(404).json({
+                statusCode: 404,
+                statusMessage: 'No confirmation code exists for this delivery.',
+                content: {}
+            });
+        }
 
-    res.status(200).json({ orderId, confirmed: true });
+        if (record.confirmed) {
+            return res.status(409).json({
+                statusCode: 409,
+                statusMessage: 'Delivery has already been confirmed.',
+                content: {}
+            });
+        }
+
+        // Locks the code after too many wrong guesses so it can't be brute forced.
+        if (record.attempts >= MAX_ATTEMPTS) {
+            return res.status(429).json({
+                statusCode: 429,
+                statusMessage: 'Too many failed attempts. The requester must generate a new code.',
+                content: {}
+            });
+        }
+
+        // Compares in constant time so response timing doesn't leak how many digits matched.
+        const expected = Buffer.from(record.code);
+        const actual = Buffer.from(code.trim());
+        if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
+            await db.collection('confirmationCodes').updateOne({ _id: record._id }, { $inc: { attempts: 1 } });
+            return res.status(401).json({
+                statusCode: 401,
+                statusMessage: 'Incorrect confirmation code.',
+                content: { attemptsLeft: MAX_ATTEMPTS - record.attempts - 1 }
+            });
+        }
+
+        // Filtering on confirmed: false stops two simultaneous confirms from both succeeding.
+        const result = await db.collection('confirmationCodes').updateOne(
+            { _id: record._id, confirmed: false },
+            { $set: { confirmed: true, confirmedBy: delivery.courierId, confirmedAt: new Date() } }
+        );
+        if (result.modifiedCount === 0) {
+            return res.status(409).json({
+                statusCode: 409,
+                statusMessage: 'Delivery has already been confirmed.',
+                content: {}
+            });
+        }
+
+        return res.status(200).json({
+            statusCode: 200,
+            statusMessage: 'Delivery confirmed successfully.',
+            content: { deliveryId: delivery._id, confirmed: true }
+        });
+
+    } catch (error) {
+        console.error('Failed to confirm delivery:', error);
+
+        return res.status(500).json({
+            statusCode: 500,
+            statusMessage: 'Failed to confirm delivery.',
+            content: {}
+        });
+    }
 });
-
 export default router;
