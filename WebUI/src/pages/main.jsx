@@ -7,6 +7,8 @@ import AuthLayout from '../layouts/AuthLayout.jsx'
 import Home from './Home.jsx'
 import Login from './Login.jsx'
 import Register from './Register.jsx'
+import Login from './login.jsx'
+import Dashboard from './Dashboard.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -20,6 +22,9 @@ createRoot(document.getElementById('root')).render(
         <Route element={<AppLayout />}>
           <Route path="/" element={<Home />} />
         </Route>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} /> 
       </Routes>
     </BrowserRouter>
   </StrictMode>,
