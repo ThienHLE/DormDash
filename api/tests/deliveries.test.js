@@ -22,8 +22,7 @@ const { createApp } = await import('../index.js');
 
 const app = await createApp();
 
-describe('POST /api/v1/deliveries', () => {
-
+describe('POST /api/v1/deliveries/createDeliveryRequest', () => {
     // Resets the fake MongoDB function before every test.
     beforeEach(() => {
         mockInsertOne.mockReset();
@@ -47,7 +46,7 @@ describe('POST /api/v1/deliveries', () => {
         });
 
         const res = await request(app)
-            .post('/api/v1/deliveries')
+            .post('/api/v1/deliveries/createDeliveryRequest')
             .send(delivery);
 
         // A new delivery resource should return 201 Created.
@@ -86,7 +85,7 @@ describe('POST /api/v1/deliveries', () => {
         };
 
         const res = await request(app)
-            .post('/api/v1/deliveries')
+            .post('/api/v1/deliveries/createDeliveryRequest')
             .send(delivery);
 
         expect(res.status).toBe(400);
@@ -113,7 +112,7 @@ describe('POST /api/v1/deliveries', () => {
         };
 
         const res = await request(app)
-            .post('/api/v1/deliveries')
+            .post('/api/v1/deliveries/createDeliveryRequest')
             .send(delivery);
 
         expect(res.status).toBe(400);
@@ -144,7 +143,7 @@ describe('POST /api/v1/deliveries', () => {
         );
 
         const res = await request(app)
-            .post('/api/v1/deliveries')
+            .post('/api/v1/deliveries/createDeliveryRequest')
             .send(delivery);
 
         expect(res.status).toBe(500);
@@ -166,7 +165,7 @@ describe('POST /api/v1/deliveries', () => {
         };
 
         const res = await request(app)
-            .post('/api/v1/deliveries')
+            .post('/api/v1/deliveries/createDeliveryRequest')
             .send(delivery);
 
         expect(res.status).toBe(400);

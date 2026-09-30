@@ -3,8 +3,7 @@ import { ObjectId } from 'mongodb';
 import { getDb } from '../db.js';
 const router = express.Router();
 // Creates a new delivery request.
-router.post('/', async (req, res) => {
-
+router.post('/createDeliveryRequest', async (req, res) => {
     // Gets the delivery information sent by the frontend.
     const {
         requesterId,

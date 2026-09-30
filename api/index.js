@@ -7,7 +7,6 @@ import { connectDb, closeDb, getClient } from './db.js';
 
 export async function createApp({ sessionStore } = {}) {
     const app = express();
-    app.use(express.json());
     // Allows Express to read JSON request bodies.
     app.use(express.json());
 
