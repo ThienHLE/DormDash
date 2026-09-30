@@ -13,7 +13,8 @@ jest.unstable_mockModule('../db.js', () => ({
         }))
     })),
     connectDb: jest.fn(),
-    closeDb: jest.fn()
+    closeDb: jest.fn(),
+    getClient: jest.fn()
 }));
 
 // Imports the DormDash application after the database mock is created.
