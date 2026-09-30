@@ -8,8 +8,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
-
   server: {
+    // Forwards API calls to the backend so the session cookie works in dev.
     proxy: {
       '/api': 'http://localhost:3000',
     },

@@ -13,6 +13,10 @@ export function getDb() {
     return db;
 }
 
+export function getClient() {
+    return client;
+}
+
 export async function closeDb() {
     await client?.close();
 }
