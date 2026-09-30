@@ -5,6 +5,8 @@ import {
   TextField,
 } from "@heroui/react";
 
+import { Link } from "react-router-dom";
+
 function Login() {
   return (
     <>
@@ -27,12 +29,18 @@ function Login() {
       <div className="flex flex-col gap-5">
         <TextField name="email" type="email">
           <Label>Email</Label>
-          <Input className="mt-2 w-full" placeholder="student@uafs.edu" />
+          <Input
+            className="mt-2 w-full"
+            placeholder="student@uafs.edu"
+          />
         </TextField>
 
         <TextField name="password" type="password">
           <Label>Password</Label>
-          <Input className="mt-2 w-full" placeholder="Enter your password" />
+          <Input
+            className="mt-2 w-full"
+            placeholder="Enter your password"
+          />
         </TextField>
 
         <div className="flex items-center justify-between text-sm">
@@ -46,15 +54,21 @@ function Login() {
           </button>
         </div>
 
-        <Button variant="primary" className="w-full justify-center bg-primary text-white">
+        <Button
+          variant="primary"
+          className="w-full justify-center bg-primary text-white"
+        >
           Sign In
         </Button>
 
         <p className="text-center text-sm text-muted">
           Don't have an account?{" "}
-          <button className="cursor-pointer font-semibold text-primary hover:underline">
+          <Link
+            to="/register"
+            className="font-semibold text-primary hover:underline"
+          >
             Create one
-          </button>
+          </Link>
         </p>
       </div>
     </>
