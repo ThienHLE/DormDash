@@ -15,19 +15,21 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
+        {/*  pages that need to be centered */}
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Route>
 
+        {/* pages that need a navBar and not centered */}
         <Route element={<AppLayout />}>
           <Route path="/" element={<Home />} />
+          <Route path="/new-request" element={<NewRequest />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/dashboard" element={<Dashboard />} /> 
+          <Route path="/deliveries/:id/code" element={<Showcode />} />
         </Route>
-        <Route path="/" element={<Home />} />
-        <Route path="/new-request" element={<NewRequest />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} /> 
-        <Route path="/showcode" element = {<Showcode />} /> 
+        
       </Routes>
     </BrowserRouter>
   </StrictMode>,

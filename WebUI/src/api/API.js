@@ -94,14 +94,17 @@ export async function createDelivery({ requesterId, item, instructions, pickupLo
 
 //get code for confirmation
 
-export async function showCode({deliveryID}){
+export async function generateCode(deliveryId){
 
   try{
     const {data} = await axios.post(
 
-      "/api/v1/deliveryConfermation/generateCode",
-      {deliveryID}
+      "/api/v1/deliveryConfirmation/generateCode",
+      {deliveryId},
+      { withCredentials: true }
+
     );
+    return data.content.code; 
 
   } catch(error){
     if (!error.response) throw new ApiError(0, "Could not reach the server");

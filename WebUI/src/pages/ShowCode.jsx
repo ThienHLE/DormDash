@@ -1,9 +1,25 @@
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { generateCode } from "../api/API.js";
 
-import { signup } from "../api/API.js";
+function ShowCode(){
+    const {id} = useParams();
+    const[code, setCode] = useState("");
+    const[error, setError] = useState("");
 
-function showCode(){
+    useEffect(() => {
+      generateCode(id)
+      .then(setCode)
+      .catch((err) => setError(err.message));
+    }, [id]); 
 
-    const code = "123456"; 
+     if (error) {
+       return <p className="mt-10 text-center text-danger">{error}</p>;
+     }
+
+     if (!code) {
+       return <p className="mt-10 text-center text-muted">Generating code...</p>;
+     }
 
     return (
         <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md flex-col items-center justify-center gap-6 text-center">
@@ -27,4 +43,4 @@ function showCode(){
 
 }
 
-export default showCode
+export default ShowCode
