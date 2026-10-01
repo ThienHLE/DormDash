@@ -8,6 +8,7 @@ import Home from './Home.jsx'
 import Login from './Login.jsx'
 import Register from './Register.jsx'
 import Dashboard from './Dashboard.jsx'
+import Showcode from './ShowCode.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -24,6 +25,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} /> 
+        <Route path="/showcode" element = {<Showcode />} /> 
       </Routes>
     </BrowserRouter>
   </StrictMode>,
