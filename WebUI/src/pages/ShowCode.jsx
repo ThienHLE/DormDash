@@ -1,3 +1,6 @@
+
+import { signup } from "../api/API.js";
+
 function showCode(){
 
     const code = "123456"; 
