@@ -59,6 +59,21 @@ export async function verifyUser(id) {
   return (await request(`/verifyUser/${encodeURIComponent(id)}`, { method: "PATCH" })).user;
 }
 
+export async function getRequests() {
+  const {data} = await axios.post("/api/v1/requests/list");
+  return data.data; 
+}
+
+export async function getMyRequests(courierId) {
+  const {data} = await axios.post("/api/v1/requests/my", { courierId: courierId });
+  return data.data; 
+}
+
+export async function acceptRequest(id, courierId){
+  const {data} = await axios.post(`/api/v1/requests/${id}/accept`, {courierId: courierId });
+  return data.data;
+}
+
 //Create a delivery request.
 export async function createDelivery({ requesterId, item, instructions, pickupLocation, deliveryLocation, tip }) {
   try {
@@ -74,6 +89,7 @@ export async function createDelivery({ requesterId, item, instructions, pickupLo
     throw new ApiError(error.response.status, body?.statusMessage ?? body?.message ?? "Something went wrong");
   }
 }
+
 
 
 //get code for confirmation
@@ -93,3 +109,4 @@ export async function showCode({deliveryID}){
     throw new ApiError(error.response.status, body?.statusMessage ?? body?.message ?? "Something went wrong");
   }
 }
+
