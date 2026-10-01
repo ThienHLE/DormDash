@@ -17,6 +17,15 @@ router.post('/list', async (_req, res) => {
     return reply(res, 200, 'Available delivery requests retrieved', requests);
 });
 
+// POST /api/v1/requests/my: return deliveries assigned to the specified courier.
+router.post('/my', async (req, res) => {
+    if (!validId(req.body?.courierId)) return reply(res, 400, 'A valid courierId is required');
+    const requests = await getDb().collection('deliveries').find({
+        courierId: new ObjectId(req.body.courierId),
+    }).toArray();
+    return reply(res, 200, 'My delivery requests retrieved', requests);
+});
+
 // POST /api/v1/requests/:id/detail: return a delivery and its current status.
 router.post('/:id/detail', async (req, res) => {
     if (!validId(req.params.id)) return reply(res, 400, 'Invalid request ID');
