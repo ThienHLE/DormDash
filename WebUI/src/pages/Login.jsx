@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+
 import {
   Button,
   Input,
@@ -5,9 +8,34 @@ import {
   TextField,
 } from "@heroui/react";
 
-import { Link } from "react-router-dom";
+import { login } from "../api/API.js";
 
 function Login() {
+  const navigate = useNavigate();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    setError("");
+    setLoading(true);
+
+    try {
+      await login(email, password);
+
+      navigate("/");
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <>
       {/* header */}
@@ -26,20 +54,31 @@ function Login() {
       </div>
 
       {/* form */}
-      <div className="flex flex-col gap-5">
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-5"
+      >
         <TextField name="email" type="email">
           <Label>Email</Label>
+
           <Input
             className="mt-2 w-full"
             placeholder="student@uafs.edu"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
           />
         </TextField>
 
         <TextField name="password" type="password">
           <Label>Password</Label>
+
           <Input
             className="mt-2 w-full"
             placeholder="Enter your password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
           />
         </TextField>
 
@@ -49,20 +88,32 @@ function Login() {
             Remember me
           </label>
 
-          <button className="cursor-pointer font-medium text-primary hover:underline">
+          <button
+            type="button"
+            className="cursor-pointer font-medium text-primary hover:underline"
+          >
             Forgot password?
           </button>
         </div>
 
+        {error && (
+          <p className="text-center text-sm text-red-600">
+            {error}
+          </p>
+        )}
+
         <Button
+          type="submit"
           variant="primary"
           className="w-full justify-center bg-primary text-white"
+          isDisabled={loading}
         >
-          Sign In
+          {loading ? "Signing In..." : "Sign In"}
         </Button>
 
         <p className="text-center text-sm text-muted">
           Don't have an account?{" "}
+
           <Link
             to="/register"
             className="font-semibold text-primary hover:underline"
@@ -70,7 +121,7 @@ function Login() {
             Create one
           </Link>
         </p>
-      </div>
+      </form>
     </>
   );
 }
