@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+
 import {
   Button,
   Input,
@@ -5,9 +8,41 @@ import {
   TextField,
 } from "@heroui/react";
 
-import { Link } from "react-router-dom";
+import { signup } from "../api/API.js";
 
 function Register() {
+  const navigate = useNavigate();
+
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    setError("");
+    setLoading(true);
+
+    try {
+      await signup({
+        firstName,
+        lastName,
+        email,
+        password,
+      });
+
+      navigate("/");
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <>
       {/* header */}
@@ -26,12 +61,29 @@ function Register() {
       </div>
 
       {/* form */}
-      <div className="flex flex-col gap-5">
-        <TextField name="name" type="text">
-          <Label>Name</Label>
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-5"
+      >
+        <TextField name="firstName" type="text">
+          <Label>First Name</Label>
           <Input
             className="mt-2 w-full"
-            placeholder="Enter your name"
+            placeholder="Enter your first name"
+            value={firstName}
+            onChange={(event) => setFirstName(event.target.value)}
+            required
+          />
+        </TextField>
+
+        <TextField name="lastName" type="text">
+          <Label>Last Name</Label>
+          <Input
+            className="mt-2 w-full"
+            placeholder="Enter your last name"
+            value={lastName}
+            onChange={(event) => setLastName(event.target.value)}
+            required
           />
         </TextField>
 
@@ -40,6 +92,9 @@ function Register() {
           <Input
             className="mt-2 w-full"
             placeholder="student@uafs.edu"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
           />
         </TextField>
 
@@ -48,14 +103,25 @@ function Register() {
           <Input
             className="mt-2 w-full"
             placeholder="Enter your password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
           />
         </TextField>
 
+        {error && (
+          <p className="text-center text-sm text-red-600">
+            {error}
+          </p>
+        )}
+
         <Button
+          type="submit"
           variant="primary"
           className="w-full justify-center bg-primary text-white"
+          isDisabled={loading}
         >
-          Create Account
+          {loading ? "Creating Account..." : "Create Account"}
         </Button>
 
         <p className="text-center text-sm text-muted">
@@ -67,7 +133,7 @@ function Register() {
             Sign in
           </Link>
         </p>
-      </div>
+      </form>
     </>
   );
 }
