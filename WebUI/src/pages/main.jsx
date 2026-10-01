@@ -10,6 +10,7 @@ import Register from './Register.jsx'
 import Dashboard from './Dashboard.jsx'
 import Showcode from './ShowCode.jsx'
 import NewRequest from './NewRequest.jsx'
+import ConfirmCode from './ConfirmCode.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -25,9 +26,9 @@ createRoot(document.getElementById('root')).render(
         <Route element={<AppLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/new-request" element={<NewRequest />} />
-          <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} /> 
           <Route path="/deliveries/:id/code" element={<Showcode />} />
+          <Route path="/deliveries/:id/confirm" element={<ConfirmCode />} />
         </Route>
         
       </Routes>

@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Button, Modal } from "@heroui/react";
+import { useNavigate } from "react-router-dom";
 import { getRequests, acceptRequest, getMyRequests, getCurrentUser } from "../api/API.js";
 import "../css/styling.css";
 
 function Dashboard() {
+    const navigate = useNavigate();
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [requests, setRequests] = useState([]);
     const [myRequests, setMyRequests] = useState([]);
@@ -102,6 +104,14 @@ function Dashboard() {
                             >
                                 View Request
                             </Button>
+
+                            <Button
+                                variant="primary"
+                                onPress={() => navigate(`/deliveries/${request._id}/confirm`)}
+                            >
+                                Confirm delivery
+                             </Button>
+                                
                         </div>
                     ))}
                 </div>

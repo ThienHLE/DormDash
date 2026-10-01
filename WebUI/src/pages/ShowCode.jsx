@@ -1,13 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { generateCode } from "../api/API.js";
 
 function ShowCode(){
+    const requested = useRef(false); 
     const {id} = useParams();
     const[code, setCode] = useState("");
     const[error, setError] = useState("");
 
     useEffect(() => {
+
+      if(requested.current) return;
+      requested.current = true; 
       generateCode(id)
       .then(setCode)
       .catch((err) => setError(err.message));
@@ -43,4 +47,4 @@ function ShowCode(){
 
 }
 
-export default ShowCode
+export default ShowCode;
