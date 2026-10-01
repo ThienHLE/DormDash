@@ -1,12 +1,12 @@
 services:
-  # ui:
-  #   build:
-  #     context: ./WebUI
-  #   ports:
-  #     - "8080:80"
-  #   depends_on:
-  #     - api
-  #   restart: unless-stopped
+  ui:
+    build:
+      context: ./WebUI
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    restart: unless-stopped
 
   api:
     build:
