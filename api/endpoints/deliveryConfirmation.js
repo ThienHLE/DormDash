@@ -5,7 +5,6 @@ import { getDb } from '../db.js';
 const router = express.Router();
 
 const CODE_LENGTH = 6;
-const MAX_ATTEMPTS = 5;
 
 // Generates a confirmation code for the user who requested the delivery.
 router.post('/generateCode', async (req, res) => {
@@ -48,11 +47,11 @@ router.post('/generateCode', async (req, res) => {
             });
         }
 
-        // Requesting again replaces the old code and resets the attempt counter.
+        // Requesting again replaces the old code.
         const code = randomInt(0, 10 ** CODE_LENGTH).toString().padStart(CODE_LENGTH, '0');
         await db.collection('confirmationCodes').updateOne(
             { deliveryId: delivery._id },
-            { $set: { userId: delivery.requesterId, code, attempts: 0, confirmed: false, createdAt: new Date() } },
+            { $set: { userId: delivery.requesterId, code, confirmed: false, createdAt: new Date() } },
             { upsert: true }
         );
 
@@ -122,24 +121,14 @@ router.post('/confirmCode', async (req, res) => {
             });
         }
 
-        // Locks the code after too many wrong guesses so it can't be brute forced.
-        if (record.attempts >= MAX_ATTEMPTS) {
-            return res.status(429).json({
-                statusCode: 429,
-                statusMessage: 'Too many failed attempts. The requester must generate a new code.',
-                content: {}
-            });
-        }
-
         // Compares in constant time so response timing doesn't leak how many digits matched.
         const expected = Buffer.from(record.code);
         const actual = Buffer.from(code.trim());
         if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
-            await db.collection('confirmationCodes').updateOne({ _id: record._id }, { $inc: { attempts: 1 } });
             return res.status(401).json({
                 statusCode: 401,
                 statusMessage: 'Incorrect confirmation code.',
-                content: { attemptsLeft: MAX_ATTEMPTS - record.attempts - 1 }
+                content: {}
             });
         }
 
