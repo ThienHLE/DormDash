@@ -74,3 +74,22 @@ export async function createDelivery({ requesterId, item, instructions, pickupLo
     throw new ApiError(error.response.status, body?.statusMessage ?? body?.message ?? "Something went wrong");
   }
 }
+
+
+//get code for confirmation
+
+export async function showCode({deliveryID}){
+
+  try{
+    const {data} = await axios.post(
+
+      "/api/v1/deliveryConfermation/generateCode",
+      {deliveryID}
+    );
+
+  } catch(error){
+    if (!error.response) throw new ApiError(0, "Could not reach the server");
+    const body = error.response.data;
+    throw new ApiError(error.response.status, body?.statusMessage ?? body?.message ?? "Something went wrong");
+  }
+}
