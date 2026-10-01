@@ -73,6 +73,7 @@ export async function acceptRequest(id, courierId){
   const {data} = await axios.post(`/api/v1/requests/${id}/accept`, {courierId: courierId });
   return data.data;
 }
+
 //Create a delivery request.
 export async function createDelivery({ requesterId, item, instructions, pickupLocation, deliveryLocation, tip }) {
   try {
