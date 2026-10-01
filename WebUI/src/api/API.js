@@ -58,3 +58,19 @@ export async function updateUser(changes) {
 export async function verifyUser(id) {
   return (await request(`/verifyUser/${encodeURIComponent(id)}`, { method: "PATCH" })).user;
 }
+
+//Create a delivery request.
+export async function createDelivery({ requesterId, item, instructions, pickupLocation, deliveryLocation, tip }) {
+  try {
+    const { data } = await axios.post(
+      "/api/v1/deliveries/createDeliveryRequest",
+      { requesterId, item, instructions, pickupLocation, deliveryLocation, tip },
+      { withCredentials: true }
+    );
+    return data.content;
+  } catch (error) {
+    if (!error.response) throw new ApiError(0, "Could not reach the server");
+    const body = error.response.data;
+    throw new ApiError(error.response.status, body?.statusMessage ?? body?.message ?? "Something went wrong");
+  }
+}
