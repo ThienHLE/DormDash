@@ -5,16 +5,27 @@ import { getDb } from '../db.js';
 const router = express.Router();
 
 const CODE_LENGTH = 6;
-const MAX_ATTEMPTS = 5;
+
+function requireLogin(req, res, next) {
+    if (!req.session.user) {
+        return res.status(401).json({
+            statusCode: 401,
+            statusMessage: 'You must be logged in.',
+            content: {}
+        });
+    }
+    next();
+}
 
 // Generates a confirmation code for the user who requested the delivery.
-router.post('/generateCode', async (req, res) => {
-    const { deliveryId, userId } = req.body;
+router.post('/generateCode', requireLogin, async (req, res) => {
+    const { deliveryId } = req.body;
+    const userId = req.session.user._id;
 
-    if (!ObjectId.isValid(deliveryId) || !ObjectId.isValid(userId)) {
+    if (!ObjectId.isValid(deliveryId)) {
         return res.status(400).json({
             statusCode: 400,
-            statusMessage: 'Delivery ID and user ID must be valid MongoDB ObjectIds.',
+            statusMessage: 'Delivery ID must be a valid MongoDB ObjectId.',
             content: {}
         });
     }
@@ -48,11 +59,11 @@ router.post('/generateCode', async (req, res) => {
             });
         }
 
-        // Requesting again replaces the old code and resets the attempt counter.
+        // Requesting again replaces the old code.
         const code = randomInt(0, 10 ** CODE_LENGTH).toString().padStart(CODE_LENGTH, '0');
         await db.collection('confirmationCodes').updateOne(
             { deliveryId: delivery._id },
-            { $set: { userId: delivery.requesterId, code, attempts: 0, confirmed: false, createdAt: new Date() } },
+            { $set: { userId: delivery.requesterId, code, confirmed: false, createdAt: new Date() } },
             { upsert: true }
         );
 
@@ -74,13 +85,14 @@ router.post('/generateCode', async (req, res) => {
 });
 
 // Confirms a delivery using the code the requester gave the courier.
-router.post('/confirmCode', async (req, res) => {
-    const { deliveryId, userId, code } = req.body;
+router.post('/confirmCode', requireLogin, async (req, res) => {
+    const { deliveryId, code } = req.body;
+    const userId = req.session.user._id;
 
-    if (!ObjectId.isValid(deliveryId) || !ObjectId.isValid(userId) || typeof code !== 'string' || !code.trim()) {
+    if (!ObjectId.isValid(deliveryId) || typeof code !== 'string' || !code.trim()) {
         return res.status(400).json({
             statusCode: 400,
-            statusMessage: 'Delivery ID, user ID, and code are required.',
+            statusMessage: 'Delivery ID and code are required.',
             content: {}
         });
     }
@@ -122,24 +134,14 @@ router.post('/confirmCode', async (req, res) => {
             });
         }
 
-        // Locks the code after too many wrong guesses so it can't be brute forced.
-        if (record.attempts >= MAX_ATTEMPTS) {
-            return res.status(429).json({
-                statusCode: 429,
-                statusMessage: 'Too many failed attempts. The requester must generate a new code.',
-                content: {}
-            });
-        }
-
         // Compares in constant time so response timing doesn't leak how many digits matched.
         const expected = Buffer.from(record.code);
         const actual = Buffer.from(code.trim());
         if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
-            await db.collection('confirmationCodes').updateOne({ _id: record._id }, { $inc: { attempts: 1 } });
             return res.status(401).json({
                 statusCode: 401,
                 statusMessage: 'Incorrect confirmation code.',
-                content: { attemptsLeft: MAX_ATTEMPTS - record.attempts - 1 }
+                content: {}
             });
         }
 
