@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import {
   getCurrentUser,
   logout,
 } from "../api/API.js";
 
+
 export default function Navbar() {
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+
 
   useEffect(() => {
     async function checkUser() {
@@ -22,14 +25,19 @@ export default function Navbar() {
     checkUser();
   }, []);
 
+
   async function handleLogout() {
     try {
       await logout();
+
       setUser(null);
+
+      navigate("/login");
     } catch (error) {
       console.error(error);
     }
   }
+
 
   return (
     <nav className="bg-surface border-b border-border">
@@ -46,7 +54,9 @@ export default function Navbar() {
           DormDash
         </Link>
 
+
         <div className="flex gap-6 text-sm text-body">
+
           <Link
             to="/"
             className="hover:text-primary"
@@ -54,8 +64,20 @@ export default function Navbar() {
             Home
           </Link>
 
+
+          {user?.admin && (
+            <Link
+              to="/admin"
+              className="hover:text-primary"
+            >
+              Admin
+            </Link>
+          )}
+
+
           {user ? (
             <button
+              type="button"
               onClick={handleLogout}
               className="cursor-pointer hover:text-primary"
             >
@@ -69,6 +91,7 @@ export default function Navbar() {
               Log in
             </Link>
           )}
+
         </div>
 
       </div>

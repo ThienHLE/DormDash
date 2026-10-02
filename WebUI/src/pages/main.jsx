@@ -2,8 +2,10 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import '../index.css'
+
 import AppLayout from '../layouts/AppLayout.jsx'
 import AuthLayout from '../layouts/AuthLayout.jsx'
+
 import Home from './Home.jsx'
 import Login from './Login.jsx'
 import Register from './Register.jsx'
@@ -11,6 +13,8 @@ import Dashboard from './Dashboard.jsx'
 import Showcode from './ShowCode.jsx'
 import NewRequest from './NewRequest.jsx'
 import ConfirmCode from './ConfirmCode.jsx'
+import Admin from './Admin.jsx'
+
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -29,6 +33,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/dashboard" element={<Dashboard />} /> 
           <Route path="/deliveries/:id/code" element={<Showcode />} />
           <Route path="/deliveries/:id/confirm" element={<ConfirmCode />} />
+          <Route path="/admin" element={<Admin />} />
         </Route>
         
       </Routes>
