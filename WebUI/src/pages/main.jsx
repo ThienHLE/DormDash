@@ -10,7 +10,9 @@ import Home from './Home.jsx'
 import Login from './Login.jsx'
 import Register from './Register.jsx'
 import Dashboard from './Dashboard.jsx'
+import Showcode from './ShowCode.jsx'
 import NewRequest from './NewRequest.jsx'
+import ConfirmCode from './ConfirmCode.jsx'
 import Admin from './Admin.jsx'
 
 
@@ -18,22 +20,22 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-
+        {/*  pages that need to be centered */}
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Route>
 
+        {/* pages that need a navBar and not centered */}
         <Route element={<AppLayout />}>
           <Route path="/" element={<Home />} />
+          <Route path="/new-request" element={<NewRequest />} />
+          <Route path="/dashboard" element={<Dashboard />} /> 
+          <Route path="/deliveries/:id/code" element={<Showcode />} />
+          <Route path="/deliveries/:id/confirm" element={<ConfirmCode />} />
           <Route path="/admin" element={<Admin />} />
         </Route>
-
-        <Route path="/" element={<Home />} />
-        <Route path="/new-request" element={<NewRequest />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-
+        
       </Routes>
     </BrowserRouter>
   </StrictMode>,
