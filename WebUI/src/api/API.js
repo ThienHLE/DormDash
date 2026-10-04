@@ -59,11 +59,15 @@ export async function verifyUser(id) {
   return (await request(`/verifyUser/${encodeURIComponent(id)}`, { method: "PATCH" })).user;
 }
 
-export async function getRequests() {
-  const {data} = await axios.post("/api/v1/requests/list");
-  return data.data; 
-}
+// US-08: Retrieve available requests with optional filters and sorting.
+export async function getRequests(filters = {}) {
+  const { data } = await axios.post(
+    "/api/v1/requests/list",
+    filters
+  );
 
+  return data.data;
+}
 export async function getMyRequests(courierId) {
   const {data} = await axios.post("/api/v1/requests/my", { courierId: courierId });
   return data.data; 
