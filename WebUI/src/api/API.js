@@ -89,3 +89,43 @@ export async function createDelivery({ requesterId, item, instructions, pickupLo
     throw new ApiError(error.response.status, body?.statusMessage ?? body?.message ?? "Something went wrong");
   }
 }
+
+//get code for confirmation
+export async function generateCode(deliveryId){
+
+  try{
+    const {data} = await axios.post(
+
+      "/api/v1/deliveryConfirmation/generateCode",
+      {deliveryId},
+      { withCredentials: true }
+
+    );
+    return data.content.code; 
+
+  } catch(error){
+    if (!error.response) throw new ApiError(0, "Could not reach the server");
+    const body = error.response.data;
+    throw new ApiError(error.response.status, body?.statusMessage ?? body?.message ?? "Something went wrong");
+  }
+}
+
+//confirm code entered 
+export async function confirmCode(deliveryId, code) {
+
+  try{
+
+    const {data} = await axios.post(
+      "/api/v1/deliveryConfirmation/confirmCode",
+      {deliveryId, code},
+      { withCredentials: true }
+    );
+    return data.content; 
+
+  } catch(error){
+    if (!error.response) throw new ApiError(0, "Could not reach the server");
+    const body = error.response.data;
+    throw new ApiError(error.response.status, body?.content?.message ?? body?.statusMessage ?? "Something went wrong");
+  }
+}
+
