@@ -64,6 +64,24 @@ export default function Navbar() {
             Home
           </Link>
 
+          {/* New Links for logged-in users AE [10/05]*/}
+          {user && (
+            <>
+            <Link
+              to="/dashboard"
+              className="hover:text-primary">
+              Dashboard
+            </Link>
+            
+            <Link
+              to="/new-request"
+              className="hover:text-primary"
+            >
+                New Request
+              </Link>   
+              </>        
+          )}
+
 
           {user?.admin && (
             <Link
