@@ -33,3 +33,15 @@
 @layer base {
     body{@apply bg-background text-ink}
 }
+
+/* US-08: FILTER BAR.*/
+
+@layer components {
+    .form-label {
+        @apply min-w-48 text-sm font-semibold text-body;
+    }
+
+    .form-select {
+        @apply mt-2 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink;
+    }
+}
