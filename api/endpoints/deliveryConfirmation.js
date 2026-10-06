@@ -51,7 +51,7 @@ router.post('/generateCode', requireLogin, async (req, res) => {
         }
 
         const existing = await db.collection('confirmationCodes').findOne({ deliveryId: delivery._id });
-        if (existing?.confirmed) {
+        if (existing?.confirmed && err.message.includes("already been confirmed")) {
             return res.status(409).json({
                 statusCode: 409,
                 statusMessage: 'Delivery has already been confirmed.',
@@ -134,6 +134,14 @@ router.post('/confirmCode', requireLogin, async (req, res) => {
             });
         }
 
+        if (delivery.status !== 'picked_up') {
+            return res.status(409).json({
+                statusCode: 409,
+                statusMessage: 'Delivery must be picked up before it can be confirmed.',
+                content: {}
+            });
+        }
+
         // Compares in constant time so response timing doesn't leak how many digits matched.
         const expected = Buffer.from(record.code);
         const actual = Buffer.from(code.trim());
@@ -157,6 +165,11 @@ router.post('/confirmCode', requireLogin, async (req, res) => {
                 content: {}
             });
         }
+
+        await db.collection('deliveries').updateOne(
+            { _id: delivery._id, status: 'picked_up' },
+            { $set: { status: 'delivered', updatedAt: new Date() } }
+        );
 
         return res.status(200).json({
             statusCode: 200,
