@@ -134,4 +134,37 @@ router.post('/pickUpDelivery', async (req, res) => {
         });
     }
 });
+
+// Returns every delivery requested by the logged-in user, newest first.
+router.get('/myDeliveries', async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({
+            statusCode: 401,
+            statusMessage: 'You must be logged in.',
+            content: {}
+        });
+    }
+
+    try {
+        const deliveries = await getDb().collection('deliveries')
+            .find({ requesterId: new ObjectId(req.session.user._id) })
+            .sort({ createdAt: -1 })
+            .toArray();
+
+        return res.status(200).json({
+            statusCode: 200,
+            statusMessage: 'Deliveries retrieved successfully.',
+            content: deliveries
+        });
+
+    } catch (error) {
+        console.error('Failed to get deliveries:', error);
+
+        return res.status(500).json({
+            statusCode: 500,
+            statusMessage: 'Failed to get deliveries.',
+            content: {}
+        });
+    }
+});
 export default router;
