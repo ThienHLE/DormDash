@@ -1,15 +1,17 @@
+import { BUILDINGS } from "../constants/buildings.js";
 import { useState } from "react";
 import { Button, Input, Label, TextField } from "@heroui/react";
 import { createDelivery, getCurrentUser } from "../api/API.js";
 import "../css/newrequest.css";
 
 // Temporary list until there's a buildings endpoint
-const BUILDINGS = [
-  "Boreham Library",
-  "Smith-Pendergraft Campus Center",
-  "Lion's Den",
-  "Sebastian Commons",
-];
+// this has moved to a separate file in constants/buildings.js -AE [10-05]
+// const BUILDINGS = [
+//   "Boreham Library",
+//   "Smith-Pendergraft Campus Center",
+//   "Lion's Den",
+//   "Sebastian Commons",
+// ];
 
 export default function NewRequest() {
   const [item, setItem] = useState("");

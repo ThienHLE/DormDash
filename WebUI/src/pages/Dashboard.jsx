@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Button, Modal } from "@heroui/react";
 import { useNavigate } from "react-router-dom";
 import { getRequests, acceptRequest, getMyRequests, getCurrentUser } from "../api/API.js";
+import { BUILDINGS } from "../constants/buildings.js";
+import { TIP_RANGES } from "../constants/tipRanges.js";
 import "../css/styling.css";
 
 function Dashboard() {
@@ -10,11 +12,56 @@ function Dashboard() {
     const [requests, setRequests] = useState([]);
     const [myRequests, setMyRequests] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
+    const [location, setLocation] = useState("");
+    const [tipRange, setTipRange] = useState("");
+    const [sort, setSort] = useState("");               //tip:desc
+    const [loadError, setLoadError] = useState("");
+
+
+    //US-08: Turn the dropdown values into the body the API expect. Tip range in cents. 
+    function buildFilters() {
+        const { tipMin, tipMax } = TIP_RANGES[tipRange]; 
+        const filters = {}; 
+        if (location) filters.location = location;
+        if (tipMin !== undefined) filters.tipMin = tipMin;
+        if (tipMax !== undefined) filters.tipMax = tipMax;
+        if (sort){
+            const [sortBy, sortOrder] = sort.split(":");
+            filters.sortBy= sortBy;
+            filters.sortOrder = sortOrder;
+        }
+        return filters;
+    }
+    
+
+    //US-08: Load open requests, with or without filters. 
+    async function loadRequests(filters = {}) {
+        try{
+            setLoadError("");
+            setRequests(await getRequests(filters));
+        } catch {
+            setRequests([]); //hide stale cards on error. 
+            setLoadError("Could not load requests. Try again.");
+        }
+    }
+
+    function applyFilters() {
+        loadRequests(buildFilters());
+    }
+
+    function clearFilters(){
+        setLocation("");
+        setTipRange("");
+        setSort("");
+        loadRequests();
+    }
 
     useEffect(() => {
-        getRequests().then((data) => {
-            setRequests(data);
-        });
+        {/* getRequests().then((data) => {
+             setRequests(data);
+         });*/}
+
+        loadRequests(); 
 
         getCurrentUser().then((user) => {
             setCurrentUser(user);
@@ -37,9 +84,11 @@ function Dashboard() {
 
         setSelectedRequest(null);
 
-        getRequests().then((data) => {
+        loadRequests(buildFilters());
+
+        {/*getRequests().then((data) => {
             setRequests(data);
-        });
+        });*/}
 
         getMyRequests(currentUser._id).then((data) => {
             setMyRequests(data);
@@ -50,6 +99,62 @@ function Dashboard() {
         <div className="page">
             <div className="page-content">
                 <h1>Open Requests</h1>
+
+                {/*US-08: filter available requests by building and tip */}
+                <div className="mx-6 flex flex-wrap items-end gap-4 
+                                rounded-2xl border border-border bg-surface p-5 shadow-sm">
+                    <label className="form-label">
+                        Building
+                        <select className="form-select" value={location}
+                            onChange={(e) => setLocation(e.target.value)}>
+                            <option value="">All Buildings</option>
+                            {BUILDINGS.map((name) => (
+                                <option key={name} value={name}>{name}</option>
+                            ))}
+                            </select>
+                    </label>
+                
+
+                <label className="form-label">
+                    Tip
+                    <select className="form-select" value={tipRange}
+                        onChange={(e) => setTipRange(e.target.value)}>
+                        {Object.entries(TIP_RANGES).map(([key, { label }]) => (
+                            <option key={key} value={key}>{label}</option>
+                        ))}
+                    </select>
+                </label>
+
+                <label className="form-label">
+                    Sort by 
+                    <select className="form-select" value={sort}
+                        onChange={(e) => setSort(e.target.value)}>
+                        <option value="">Default</option>
+                        <option value="tip:desc">Tip : high to low</option>
+                        <option value="tip:asc">Tip : low to high</option>
+                        <option value="pickupLocation:asc">Pickup location : A-Z</option>
+                        <option value="pickupLocation:desc">Pickup location : Z-A</option>
+                        {/*<option value="deliveryLocation:asc">Delivery location : A-Z</option>
+                        <option value="deliveryLocation:desc">Delivery location : Z-A</option>*/}
+                    </select>
+                </label>
+              
+              <div className="ml-auto flex gap-3">
+                <Button variant="primary" className="bg-primary text-white"
+                     onPress={applyFilters}>Apply</Button>
+                <Button variant="secondary" onPress={clearFilters}>Clear</Button>
+                </div>
+              </div>
+
+              {loadError && (<div className="mx-6 mt-4 rounded-xl border border-red-200
+               bg-red-50 p-4 text-sm text-red-700">
+                {loadError}
+                </div>)}
+
+              {!loadError && requests.length === 0 &&
+                ( <div className="py-12 text-center text-muted">No requests match your filters.</div>)}
+
+{/*--------- END OF US-08 FILTERS ----------------------------------------------------*/}
 
                 <div className="cards">
                     {requests.map((request) => (
@@ -67,6 +172,11 @@ function Dashboard() {
                                 <p>
                                     <strong>Delivery location: </strong>
                                     {request?.deliveryLocation}
+                                </p>
+
+                                <p>
+                                    <strong>Tip: </strong>
+                                    ${(request.tip / 100).toFixed(2)}
                                 </p>
                             </div>
 
@@ -152,7 +262,7 @@ function Dashboard() {
 
                                     <p>
                                         <strong>Tip:</strong>{" "}
-                                        ${selectedRequest?.tip/100}
+                                        ${(selectedRequest?.tip / 100).toFixed(2)}
                                     </p>
 
                                     <p>
