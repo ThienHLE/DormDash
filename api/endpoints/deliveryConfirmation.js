@@ -51,7 +51,7 @@ router.post('/generateCode', requireLogin, async (req, res) => {
         }
 
         const existing = await db.collection('confirmationCodes').findOne({ deliveryId: delivery._id });
-        if (existing?.confirmed) {
+        if (existing?.confirmed && err.message.includes("already been confirmed")) {
             return res.status(409).json({
                 statusCode: 409,
                 statusMessage: 'Delivery has already been confirmed.',
