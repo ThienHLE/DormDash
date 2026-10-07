@@ -133,3 +133,51 @@ export async function confirmCode(deliveryId, code) {
   }
 }
 
+// Get all deliveries requested by the currently logged-in user.
+export async function getMyDeliveries() {
+  try {
+    const { data } = await axios.get(
+      "/api/v1/deliveries/myDeliveries",
+      { withCredentials: true }
+    );
+
+    return data.content;
+
+  } catch (error) {
+    if (!error.response) {
+      throw new ApiError(0, "Could not reach the server");
+    }
+
+    const body = error.response.data;
+
+    throw new ApiError(
+      error.response.status,
+      body?.statusMessage ?? body?.message ?? "Something went wrong"
+    );
+  }
+}
+
+// Mark an accepted delivery as picked up.
+export async function pickUpDelivery(deliveryId) {
+  try {
+    const { data } = await axios.post(
+      "/api/v1/deliveries/pickUpDelivery",
+      { deliveryId },
+      { withCredentials: true }
+    );
+
+    return data.content;
+
+  } catch (error) {
+    if (!error.response) {
+      throw new ApiError(0, "Could not reach the server");
+    }
+
+    const body = error.response.data;
+
+    throw new ApiError(
+      error.response.status,
+      body?.statusMessage ?? body?.message ?? "Something went wrong"
+    );
+  }
+}

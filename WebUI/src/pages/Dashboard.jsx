@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button, Modal } from "@heroui/react";
 import { useNavigate } from "react-router-dom";
-import { getRequests, acceptRequest, getMyRequests, getCurrentUser } from "../api/API.js";
+import { getRequests, acceptRequest, getMyRequests, getCurrentUser, pickUpDelivery } from "../api/API.js";
 import { BUILDINGS } from "../constants/buildings.js";
 import { TIP_RANGES } from "../constants/tipRanges.js";
 import "../css/styling.css";
@@ -95,10 +95,52 @@ function Dashboard() {
         });
     }
 
+    async function pickUpRequest(request){
+        if(!request || !currentUser){
+            return;
+        }
+
+        await pickUpDelivery(request._id);
+
+        setSelectedRequest(null);
+
+        getMyRequests(currentUser._id).then((data) => {
+            setMyRequests(data);
+        });
+    }
+
+    function getStatusLabel(status){
+        if(status === "accepted"){
+            return "Accepted";
+        }
+
+        if(status === "picked_up"){
+            return "Picked Up";
+        }
+
+        if(status === "delivered"){
+            return "Delivered";
+        }
+
+        return status;
+    }
+
+    const availableRequests = requests.filter((request) => {
+        if(!currentUser){
+            return true;
+        }
+
+        return String(request.requesterId) !== String(currentUser._id);
+    });
+
+    const activeDeliveries = myRequests.filter((request) => {
+        return request.status === "accepted" || request.status === "picked_up";
+    });
+
     return (
         <div className="page">
             <div className="page-content">
-                <h1>Open Requests</h1>
+                <h1>Available Requests</h1>
 
                 {/*US-08: filter available requests by building and tip */}
                 <div className="mx-6 flex flex-wrap items-end gap-4 
@@ -151,13 +193,13 @@ function Dashboard() {
                 {loadError}
                 </div>)}
 
-              {!loadError && requests.length === 0 &&
+              {!loadError && availableRequests.length === 0 &&
                 ( <div className="py-12 text-center text-muted">No requests match your filters.</div>)}
 
 {/*--------- END OF US-08 FILTERS ----------------------------------------------------*/}
 
                 <div className="cards">
-                    {requests.map((request) => (
+                    {availableRequests.map((request) => (
                         <div className="card" key={request._id}>
                             <h2 className="card-title">
                                 {request.item}
@@ -189,9 +231,13 @@ function Dashboard() {
                     ))}
                 </div>
 
-            <h1>My Requests</h1>
+            <h1>Active Deliveries</h1>
+
+                {activeDeliveries.length === 0 &&
+                    ( <div className="py-12 text-center text-muted">You have no active deliveries.</div>)}
+
                 <div className="cards">
-                    {myRequests.map((request) => (
+                    {activeDeliveries.map((request) => (
                         <div className="card" key={request._id}>
                             <h2 className="card-title">
                                 {request.item}
@@ -207,6 +253,11 @@ function Dashboard() {
                                     <strong>Delivery location: </strong>
                                     {request?.deliveryLocation}
                                 </p>
+
+                                <p>
+                                    <strong>Status: </strong>
+                                    {getStatusLabel(request.status)}
+                                </p>
                             </div>
 
                             <Button
@@ -215,12 +266,23 @@ function Dashboard() {
                                 View Request
                             </Button>
 
-                            <Button
-                                variant="primary"
-                                onPress={() => navigate(`/deliveries/${request._id}/confirm`)}
-                            >
-                                Confirm delivery
-                             </Button>
+                            {request.status === "accepted" && (
+                                <Button
+                                    variant="primary"
+                                    onPress={() => pickUpRequest(request)}
+                                >
+                                    Picked Up
+                                </Button>
+                            )}
+
+                            {request.status === "picked_up" && (
+                                <Button
+                                    variant="primary"
+                                    onPress={() => navigate(`/deliveries/${request._id}/confirm`)}
+                                >
+                                    Confirm delivery
+                                </Button>
+                            )}
                                 
                         </div>
                     ))}
@@ -267,16 +329,34 @@ function Dashboard() {
 
                                     <p>
                                         <strong>Status:</strong>{" "}
-                                        {selectedRequest?.status}
+                                        {getStatusLabel(selectedRequest?.status)}
                                     </p>
                                 </Modal.Body>
 
                                 <Modal.Footer>
-                                    <Button
-                                        onPress={registerRequest}
-                                    >
-                                        Register
-                                    </Button>
+                                    {selectedRequest?.status === "open" && (
+                                        <Button
+                                            onPress={registerRequest}
+                                        >
+                                            Accept Request
+                                        </Button>
+                                    )}
+
+                                    {selectedRequest?.status === "accepted" && (
+                                        <Button
+                                            onPress={() => pickUpRequest(selectedRequest)}
+                                        >
+                                            Picked Up
+                                        </Button>
+                                    )}
+
+                                    {selectedRequest?.status === "picked_up" && (
+                                        <Button
+                                            onPress={() => navigate(`/deliveries/${selectedRequest._id}/confirm`)}
+                                        >
+                                            Confirm delivery
+                                        </Button>
+                                    )}
 
                                     <Button
                                         variant="secondary"

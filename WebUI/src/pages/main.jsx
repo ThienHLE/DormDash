@@ -14,6 +14,7 @@ import Showcode from './ShowCode.jsx'
 import NewRequest from './NewRequest.jsx'
 import ConfirmCode from './ConfirmCode.jsx'
 import Admin from './Admin.jsx'
+import Profile from './Profile.jsx'
 
 
 createRoot(document.getElementById('root')).render(
@@ -34,6 +35,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/deliveries/:id/code" element={<Showcode />} />
           <Route path="/deliveries/:id/confirm" element={<ConfirmCode />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/profile" element={<Profile />} />
         </Route>
         
       </Routes>
