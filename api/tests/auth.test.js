@@ -336,4 +336,36 @@ describe('auth', () => {
             expect(res.status).toBe(404);
         });
     });
+
+    describe('PATCH /unverifyUser/:id', () => {
+        it('requires login', async () => {
+            const res = await request(app).patch(`/api/v1/auth/unverifyUser/${missingId}`);
+            expect(res.status).toBe(401);
+        });
+
+        it('forbids non-admins', async () => {
+            const { agent, id } = await loggedInAgent();
+            users[0].verified = true;
+            const res = await agent.patch(`/api/v1/auth/unverifyUser/${id}`);
+            expect(res.status).toBe(403);
+            expect(users[0].verified).toBe(true);
+        });
+
+        it('lets an admin unverify a user', async () => {
+            const { id } = await loggedInAgent();
+            users.find((user) => sameId(user._id, id)).verified = true;
+            const admin = await adminAgent();
+
+            const res = await admin.patch(`/api/v1/auth/unverifyUser/${id}`);
+            expect(res.status).toBe(200);
+            expect(res.body.content.user).toMatchObject({ _id: id, verified: false });
+            expect(users.find((user) => sameId(user._id, id)).verified).toBe(false);
+        });
+
+        it('rejects an invalid ID', async () => {
+            const admin = await adminAgent();
+            const res = await admin.patch('/api/v1/auth/unverifyUser/not-an-id');
+            expect(res.status).toBe(400);
+        });
+    });
 });

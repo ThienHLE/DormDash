@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Button, Modal } from "@heroui/react";
 import { useNavigate } from "react-router-dom";
-import { getRequests, acceptRequest, getMyRequests, getCurrentUser, pickUpDelivery } from "../api/API.js";
+import { getRequests, acceptRequest, getMyRequests, getCurrentUser, getMyDisputes, pickUpDelivery } from "../api/API.js";
 import { BUILDINGS } from "../constants/buildings.js";
 import { TIP_RANGES } from "../constants/tipRanges.js";
+import ReportDeliveryButton from "../components/ReportDeliveryButton.jsx";
 import "../css/styling.css";
 
 function Dashboard() {
@@ -11,6 +12,9 @@ function Dashboard() {
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [requests, setRequests] = useState([]);
     const [myRequests, setMyRequests] = useState([]);
+    const [reportedPostIds, setReportedPostIds] = useState([]);
+    const [reportDataLoaded, setReportDataLoaded] = useState(false);
+    const [reportCheckError, setReportCheckError] = useState("");
     const [currentUser, setCurrentUser] = useState(null);
     const [location, setLocation] = useState("");
     const [tipRange, setTipRange] = useState("");
@@ -63,12 +67,26 @@ function Dashboard() {
 
         loadRequests(); 
 
-        getCurrentUser().then((user) => {
+        getCurrentUser().then(async (user) => {
             setCurrentUser(user);
-
-            getMyRequests(user._id).then((data) => {
-                setMyRequests(data);
-            });
+            if (!user) return;
+            const [deliveriesResult, disputesResult] = await Promise.allSettled([
+                getMyRequests(user._id),
+                getMyDisputes()
+            ]);
+            if (deliveriesResult.status === "fulfilled") {
+                setMyRequests(deliveriesResult.value);
+            } else {
+                setLoadError(deliveriesResult.reason.message);
+            }
+            if (disputesResult.status === "fulfilled") {
+                setReportedPostIds(disputesResult.value
+                    .filter((dispute) => String(dispute.createdBy) === String(user._id))
+                    .map((dispute) => String(dispute.postId)));
+                setReportDataLoaded(true);
+            } else {
+                setReportCheckError(disputesResult.reason.message);
+            }
         });
     }, []);
 
@@ -236,6 +254,12 @@ function Dashboard() {
                 {activeDeliveries.length === 0 &&
                     ( <div className="py-12 text-center text-muted">You have no active deliveries.</div>)}
 
+                {reportCheckError && (
+                    <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                        Could not check your previous reports: {reportCheckError}
+                    </div>
+                )}
+
                 <div className="cards">
                     {activeDeliveries.map((request) => (
                         <div className="card" key={request._id}>
@@ -283,6 +307,13 @@ function Dashboard() {
                                     Confirm delivery
                                 </Button>
                             )}
+
+                            <ReportDeliveryButton
+                                delivery={request}
+                                currentUserId={currentUser?._id}
+                                hasReported={reportedPostIds.includes(String(request._id))}
+                                reportDataLoaded={reportDataLoaded}
+                            />
                                 
                         </div>
                     ))}

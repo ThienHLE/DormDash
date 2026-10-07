@@ -2,15 +2,18 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@heroui/react";
 
-import { getMyDeliveries } from "../../api/API.js";
+import { getMyDeliveries, getMyDisputes } from "../../api/API.js";
+import ReportDeliveryButton from "../ReportDeliveryButton.jsx";
 
 
-function OrderHistory() {
+function OrderHistory({ currentUser }) {
   const navigate = useNavigate();
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reportedPostIds, setReportedPostIds] = useState([]);
+  const [reportDataLoaded, setReportDataLoaded] = useState(false);
 
 
   useEffect(() => {
@@ -18,9 +21,15 @@ function OrderHistory() {
       try {
         setError("");
 
-        const deliveries = await getMyDeliveries();
-
+        const [deliveries, disputes] = await Promise.all([
+          getMyDeliveries(),
+          getMyDisputes(),
+        ]);
         setOrders(deliveries);
+        setReportedPostIds(disputes
+          .filter((dispute) => String(dispute.createdBy) === String(currentUser?._id))
+          .map((dispute) => String(dispute.postId)));
+        setReportDataLoaded(true);
 
       } catch (error) {
         setError(error.message);
@@ -31,7 +40,7 @@ function OrderHistory() {
     }
 
     loadOrders();
-  }, []);
+  }, [currentUser?._id]);
 
 
   function getStatusLabel(status) {
@@ -145,11 +154,19 @@ function OrderHistory() {
             </div>
 
 
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusStyle(order.status)}`}
-            >
-              {getStatusLabel(order.status)}
-            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusStyle(order.status)}`}
+              >
+                {getStatusLabel(order.status)}
+              </span>
+              <ReportDeliveryButton
+                delivery={order}
+                currentUserId={currentUser?._id}
+                hasReported={reportedPostIds.includes(String(order._id))}
+                reportDataLoaded={reportDataLoaded}
+              />
+            </div>
 
           </div>
 

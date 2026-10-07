@@ -5,6 +5,7 @@ import { Tabs } from "@heroui/react";
 import { getCurrentUser } from "../api/API.js";
 import OrderHistory from "../components/profile/OrderHistory.jsx";
 import DeliveryHistory from "../components/profile/DeliveryHistory.jsx";
+import DisputesHistory from "../components/profile/DisputesHistory.jsx";
 
 
 function Profile() {
@@ -132,6 +133,11 @@ function Profile() {
               <Tabs.Indicator />
             </Tabs.Tab>
 
+            <Tabs.Tab id="disputes">
+              Disputes
+              <Tabs.Indicator />
+            </Tabs.Tab>
+
           </Tabs.List>
 
         </Tabs.ListContainer>
@@ -156,7 +162,7 @@ function Profile() {
             </div>
 
 
-            <OrderHistory />
+            <OrderHistory currentUser={currentUser} />
 
           </div>
 
@@ -186,6 +192,18 @@ function Profile() {
 
           </div>
 
+        </Tabs.Panel>
+
+        <Tabs.Panel id="disputes">
+          <div className="mt-6 space-y-5">
+            <div>
+              <h2 className="text-2xl font-bold text-ink">Disputes You Created</h2>
+              <p className="mt-1 text-muted">
+                View the reports you submitted and their current status.
+              </p>
+            </div>
+            <DisputesHistory currentUser={currentUser} />
+          </div>
         </Tabs.Panel>
 
       </Tabs>
