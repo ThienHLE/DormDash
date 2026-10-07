@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Dropdown } from "@heroui/react";
 
 import {
   getCurrentUser,
@@ -39,6 +40,17 @@ export default function Navbar() {
   }
 
 
+  function handleProfileMenu(key) {
+    if (key === "profile") {
+      navigate("/profile");
+    }
+
+    if (key === "logout") {
+      handleLogout();
+    }
+  }
+
+
   return (
     <nav className="bg-surface border-b border-border">
       <div className="mx-auto max-w-5xl px-4 md:px-8 h-16 flex items-center justify-between">
@@ -55,7 +67,7 @@ export default function Navbar() {
         </Link>
 
 
-        <div className="flex gap-6 text-sm text-body">
+        <div className="flex items-center gap-6 text-sm text-body">
 
           <Link
             to="/"
@@ -94,13 +106,31 @@ export default function Navbar() {
 
 
           {user ? (
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="cursor-pointer hover:text-primary"
-            >
-              Log out
-            </button>
+            <Dropdown>
+              <Dropdown.Trigger
+                className="cursor-pointer text-sm text-body hover:text-primary"
+              >
+                Profile
+                <span className="ml-1 text-xs">
+                  ▾
+                </span>
+              </Dropdown.Trigger>
+
+              <Dropdown.Popover placement="bottom end">
+                <Dropdown.Menu
+                  aria-label="Profile menu"
+                  onAction={handleProfileMenu}
+                >
+                  <Dropdown.Item id="profile">
+                    Profile
+                  </Dropdown.Item>
+
+                  <Dropdown.Item id="logout">
+                    Log out
+                  </Dropdown.Item>
+                </Dropdown.Menu>
+              </Dropdown.Popover>
+            </Dropdown>
           ) : (
             <Link
               to="/login"
