@@ -14,6 +14,7 @@ import Showcode from './ShowCode.jsx'
 import NewRequest from './NewRequest.jsx'
 import ConfirmCode from './ConfirmCode.jsx'
 import Admin from './Admin.jsx'
+import Map from './Map.jsx'
 
 
 createRoot(document.getElementById('root')).render(
@@ -34,8 +35,8 @@ createRoot(document.getElementById('root')).render(
           <Route path="/deliveries/:id/code" element={<Showcode />} />
           <Route path="/deliveries/:id/confirm" element={<ConfirmCode />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/map" element={<Map />} />
         </Route>
-        
       </Routes>
     </BrowserRouter>
   </StrictMode>,
