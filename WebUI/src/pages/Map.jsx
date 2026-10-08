@@ -13,7 +13,7 @@ function Map() {
 
     useEffect(() => {
         const map = L.map("map", {
-            minZoom: 10,
+            minZoom: 16,
             maxZoom: 18
         }).setView([35.3825, -94.3750], 17);
 
