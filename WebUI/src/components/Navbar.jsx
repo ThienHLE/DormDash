@@ -78,8 +78,15 @@ export default function Navbar() {
               className="hover:text-primary"
             >
                 New Request
-              </Link>   
-              </>        
+            </Link>   
+              
+            <Link
+              to="/map"
+              className="hover:text-primary"
+            >
+                Map
+            </Link>  
+            </>             
           )}
 
 

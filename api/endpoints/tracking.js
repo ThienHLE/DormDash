@@ -81,7 +81,7 @@ router.post('/update', async (req, res) => {
         confirmed: true,
     });
 
-    if (delivery.status !== 'accepted' || confirmation) {
+    if ((delivery.status !== 'accepted' && delivery.status !== 'picked_up') || confirmation) {
         return reply(res, 409, 'Tracking is not active for this delivery.');
     }
 
@@ -155,7 +155,7 @@ router.post('/location', async (req, res) => {
         confirmed: true,
     });
 
-    if (delivery.status !== 'accepted' || confirmation) {
+    if ((delivery.status !== 'accepted' && delivery.status !== 'picked_up') || confirmation) {
         return reply(res, 409, 'Tracking is not active for this delivery.');
     }
 

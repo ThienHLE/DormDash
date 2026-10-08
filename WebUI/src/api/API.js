@@ -134,26 +134,74 @@ export async function confirmCode(deliveryId, code) {
 }
 
 export async function getLocations() {
-    const { data } = await axios.post("/api/v1/locations/list");
-
-    return data.content.locations;
+  const { data } = await axios.post("/api/v1/locations/list");
+  return data.content.locations;
 }
 
 export async function createLocation(name, latitude, longitude) {
-    const { data } = await axios.post(
-        "/api/v1/locations/create",
-        {
-            name: name,
-            latitude: latitude,
-            longitude: longitude
-        }
-    );
-
-    return data.content.location;
+  const { data } = await axios.post(
+    "/api/v1/locations/create",
+    {
+      name: name,
+      latitude: latitude,
+      longitude: longitude
+    }
+  );
+  return data.content.location;
 }
 
 export async function deleteLocation(id) {
-    await axios.post(
-        "/api/v1/locations/" + id + "/deactivate"
-    );
+  await axios.post(
+    "/api/v1/locations/" + id + "/deactivate"
+  );
+}
+
+// Get the carrier's current location
+export async function getCarrierLocation(deliveryId) {
+  const { data } = await axios.post(
+    "/api/v1/tracking/location",
+    {
+      deliveryId: deliveryId
+    },
+    {
+      withCredentials: true
+    }
+  );
+  
+  return data.content;
+}
+
+// Send the carrier's current location
+export async function updateTracking(
+  deliveryId,
+  latitude,
+  longitude,
+  accuracy,
+  capturedAt
+) {
+  const { data } = await axios.post(
+    "/api/v1/tracking/update",
+    {
+      deliveryId: deliveryId,
+      latitude: latitude,
+      longitude: longitude,
+      accuracy: accuracy,
+      capturedAt: capturedAt
+    },
+    {
+      withCredentials: true
+    }
+  );
+  return data.content;
+}
+
+// Get all deliveries created by the logged-in user
+export async function getMyDeliveries() {
+  const { data } = await axios.get(
+    "/api/v1/deliveries/myDeliveries",
+    {
+      withCredentials: true
+    }
+  );
+  return data.content;
 }
