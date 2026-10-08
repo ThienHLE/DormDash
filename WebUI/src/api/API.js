@@ -133,3 +133,27 @@ export async function confirmCode(deliveryId, code) {
   }
 }
 
+export async function getLocations() {
+    const { data } = await axios.post("/api/v1/locations/list");
+
+    return data.content.locations;
+}
+
+export async function createLocation(name, latitude, longitude) {
+    const { data } = await axios.post(
+        "/api/v1/locations/create",
+        {
+            name: name,
+            latitude: latitude,
+            longitude: longitude
+        }
+    );
+
+    return data.content.location;
+}
+
+export async function deleteLocation(id) {
+    await axios.post(
+        "/api/v1/locations/" + id + "/deactivate"
+    );
+}

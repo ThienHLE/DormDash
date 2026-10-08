@@ -5,6 +5,7 @@ import { getCurrentUser } from "../api/API.js";
 
 import UserManagement from "../components/admin/UserManagement.jsx";
 import ReportsDisputes from "../components/admin/ReportsDisputes.jsx";
+import MapManagement from "../components/admin/MapManagement.jsx";
 
 
 function Admin() {
@@ -95,6 +96,18 @@ function Admin() {
             Reports & Disputes
           </button>
 
+          <button
+            type="button"
+            onClick={() => setActiveSection("map")}
+            className={`cursor-pointer border-b-2 px-1 pb-3 text-base font-semibold transition ${
+              activeSection === "map"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted hover:text-ink"
+            }`}
+          >
+            Map Management
+          </button>
+
         </div>
       </div>
 
@@ -108,6 +121,9 @@ function Admin() {
         <ReportsDisputes />
       )}
 
+      {activeSection === "map" && (
+        <MapManagement />
+      )}
     </div>
   );
 }
