@@ -239,3 +239,26 @@ export async function deleteDisputePost(disputeId) {
     method: "DELETE",
   });
 }
+// Closest to My Location: Retrieve active campus locations and GPS coordinates.
+export async function getCampusLocations() {
+  try {
+    const { data } = await axios.post(
+      "/api/v1/locations/list",
+      {},
+      { withCredentials: true }
+    );
+
+    return data.content.locations;
+  } catch (error) {
+    if (!error.response) {
+      throw new ApiError(0, "Could not reach the server");
+    }
+
+    const body = error.response.data;
+
+    throw new ApiError(
+      error.response.status,
+      body?.statusMessage ?? "Could not load campus locations"
+    );
+  }
+}
