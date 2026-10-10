@@ -4,12 +4,22 @@ import { jest } from '@jest/globals';
 // Creates a fake MongoDB insertOne function.
 // This prevents automated tests from writing to the real Atlas database.
 const mockInsertOne = jest.fn();
-
+// US-05/US-06 follow-up: Fake MongoDB function for delivery status updates.
+const mockFindOneAndUpdate = jest.fn();
+// US-05/US-06 follow-up: Fake MongoDB lookup used to create a logged-in test courier.
+const mockFindOne = jest.fn();
+// US-05/US-06 follow-up: Fake MongoDB functions for retrieving a requester's deliveries.
+const mockFind = jest.fn();
+const mockSort = jest.fn();
+const mockToArray = jest.fn();
 // Mocks db.js before the application loads it.
 jest.unstable_mockModule('../db.js', () => ({
     getDb: jest.fn(() => ({
         collection: jest.fn(() => ({
-            insertOne: mockInsertOne
+            insertOne: mockInsertOne,
+            findOneAndUpdate: mockFindOneAndUpdate,
+            findOne: mockFindOne,
+            find: mockFind
         }))
     })),
     connectDb: jest.fn(),
@@ -26,8 +36,12 @@ describe('POST /api/v1/deliveries/createDeliveryRequest', () => {
     // Resets the fake MongoDB function before every test.
     beforeEach(() => {
         mockInsertOne.mockReset();
+        mockFindOneAndUpdate.mockReset();
+        mockFindOne.mockReset();
+        mockFind.mockReset();
+        mockSort.mockReset();
+        mockToArray.mockReset();
     });
-
     // Tests that a valid delivery request is created successfully.
     it('creates a valid delivery request', async () => {
 
@@ -177,5 +191,201 @@ describe('POST /api/v1/deliveries/createDeliveryRequest', () => {
 
         // Invalid requester ID should never reach MongoDB.
         expect(mockInsertOne).not.toHaveBeenCalled();
+    });
+});
+// US-05/US-06 follow-up: Tests the accepted-to-picked_up delivery transition.
+describe('POST /api/v1/deliveries/pickUpDelivery', () => {
+
+    beforeEach(() => {
+        mockInsertOne.mockReset();
+        mockFindOne.mockReset();
+        mockFindOneAndUpdate.mockReset();
+    });
+
+    // US-05 follow-up: The assigned courier can mark an accepted delivery as picked up.
+    it('allows the assigned courier to pick up an accepted delivery', async () => {
+        const courierId = '507f1f77bcf86cd799439021';
+        const deliveryId = '507f1f77bcf86cd799439022';
+
+        // Signup: email does not already exist.
+        mockFindOne.mockResolvedValueOnce(null);
+
+        // Signup: MongoDB returns the courier's ID.
+        mockInsertOne.mockResolvedValueOnce({
+            insertedId: courierId
+        });
+
+        const agent = request.agent(app);
+
+        const signup = await agent
+            .post('/api/v1/auth/signup')
+            .send({
+                email: 'courier@school.edu',
+                password: 'password123',
+                firstName: 'Test',
+                lastName: 'Courier'
+            });
+
+        expect(signup.status).toBe(201);
+
+        // Pretend MongoDB finds the accepted delivery and changes it to picked_up.
+        mockFindOneAndUpdate.mockResolvedValueOnce({
+            _id: deliveryId,
+            courierId,
+            status: 'picked_up'
+        });
+
+        const res = await agent
+            .post('/api/v1/deliveries/pickUpDelivery')
+            .send({ deliveryId });
+
+        expect(res.status).toBe(200);
+        expect(res.body.statusMessage).toBe(
+            'Delivery picked up successfully.'
+        );
+        expect(res.body.content.status).toBe('picked_up');
+
+        // Verify that the backend only updates an accepted delivery
+        // assigned to the logged-in courier.
+        expect(mockFindOneAndUpdate).toHaveBeenCalledWith(
+            {
+                _id: expect.anything(),
+                status: 'accepted',
+                courierId: expect.anything()
+            },
+            {
+                $set: {
+                    status: 'picked_up',
+                    updatedAt: expect.any(Date)
+                }
+            },
+            {
+                returnDocument: 'after'
+            }
+        );
+    });
+
+    // US-05 follow-up: A delivery cannot be picked up when it is unavailable to this courier.
+    it('rejects pickup when the delivery is not assigned and ready for this courier', async () => {
+        const courierId = '507f1f77bcf86cd799439021';
+        const deliveryId = '507f1f77bcf86cd799439022';
+
+        // Signup: email does not already exist.
+        mockFindOne.mockResolvedValueOnce(null);
+
+        // Signup: MongoDB returns the courier's ID.
+        mockInsertOne.mockResolvedValueOnce({
+            insertedId: courierId
+        });
+
+        const agent = request.agent(app);
+
+        const signup = await agent
+            .post('/api/v1/auth/signup')
+            .send({
+                email: 'courier@school.edu',
+                password: 'password123',
+                firstName: 'Test',
+                lastName: 'Courier'
+            });
+
+        expect(signup.status).toBe(201);
+
+        // MongoDB finds no delivery matching:
+        // this ID + accepted status + this assigned courier.
+        mockFindOneAndUpdate.mockResolvedValueOnce(null);
+
+        const res = await agent
+            .post('/api/v1/deliveries/pickUpDelivery')
+            .send({ deliveryId });
+
+        expect(res.status).toBe(409);
+        expect(res.body.statusMessage).toBe(
+            'Delivery not found, not assigned to you, or not ready for pickup.'
+        );
+    });
+});
+
+// US-05/US-06 follow-up: Tests retrieving deliveries created by the logged-in requester.
+describe('GET /api/v1/deliveries/myDeliveries', () => {
+
+    beforeEach(() => {
+        mockInsertOne.mockReset();
+        mockFindOneAndUpdate.mockReset();
+        mockFindOne.mockReset();
+        mockFind.mockReset();
+        mockSort.mockReset();
+        mockToArray.mockReset();
+    });
+
+    // US-05 follow-up: A logged-in requester can retrieve their deliveries.
+    it('returns the logged-in requester deliveries newest first', async () => {
+        const requesterId = '507f1f77bcf86cd799439031';
+
+        // Signup: email does not already exist.
+        mockFindOne.mockResolvedValueOnce(null);
+
+        // Signup: MongoDB returns the requester's ID.
+        mockInsertOne.mockResolvedValueOnce({
+            insertedId: requesterId
+        });
+
+        const agent = request.agent(app);
+
+        const signup = await agent
+            .post('/api/v1/auth/signup')
+            .send({
+                email: 'requester@school.edu',
+                password: 'password123',
+                firstName: 'Test',
+                lastName: 'Requester'
+            });
+
+        expect(signup.status).toBe(201);
+
+        const deliveries = [
+            {
+                _id: 'delivery-2',
+                item: 'Coffee',
+                status: 'accepted'
+            },
+            {
+                _id: 'delivery-1',
+                item: 'Book',
+                status: 'delivered'
+            }
+        ];
+
+        // Build the fake MongoDB chain:
+        // find(...).sort(...).toArray()
+        mockFind.mockReturnValue({
+            sort: mockSort
+        });
+
+        mockSort.mockReturnValue({
+            toArray: mockToArray
+        });
+
+        mockToArray.mockResolvedValue(deliveries);
+
+        const res = await agent
+            .get('/api/v1/deliveries/myDeliveries');
+
+        expect(res.status).toBe(200);
+        expect(res.body.statusMessage).toBe(
+            'Deliveries retrieved successfully.'
+        );
+
+        expect(res.body.content).toEqual(deliveries);
+
+        // Only retrieve deliveries created by the logged-in requester.
+        expect(mockFind).toHaveBeenCalledWith({
+            requesterId: expect.anything()
+        });
+
+        // Newest deliveries should appear first.
+        expect(mockSort).toHaveBeenCalledWith({
+            createdAt: -1
+        });
     });
 });

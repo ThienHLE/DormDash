@@ -103,4 +103,18 @@ router.patch("/verifyUser/:id", requireLogin, async (req, res) => {
     res.json({ statusCode: 200, statusMessage: "OK", content: { user: sessionUser(updated) } });
 });
 
+router.patch("/unverifyUser/:id", requireLogin, async (req, res) => {
+    const users = getDb().collection('users');
+    const requester = await users.findOne({ _id: new ObjectId(req.session.user._id) });
+    if (!requester?.admin) return error(res, 403, "Forbidden", "Admin access required");
+    if (!ObjectId.isValid(req.params.id)) return error(res, 400, "Bad Request", "User ID must be a valid MongoDB ObjectId");
+    const updated = await users.findOneAndUpdate(
+        { _id: new ObjectId(req.params.id) },
+        { $set: { verified: false, updatedAt: new Date() } },
+        { returnDocument: 'after', projection: publicProjection }
+    );
+    if (!updated) return error(res, 404, "Not Found", "User not found");
+    res.json({ statusCode: 200, statusMessage: "OK", content: { user: sessionUser(updated) } });
+});
+
 export default router;

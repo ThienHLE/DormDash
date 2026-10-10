@@ -137,7 +137,8 @@ export default function NewRequest() {
           <div>
             <TextField name="tip" type="number" value={tip} onChange={setTip}>
               <Label>Tip ($)</Label>
-              <Input className="newrequest-input" placeholder="3.00" />
+              {/* UI follow-up: Prevent the tip input from going below zero. */}
+              <Input className="newrequest-input" placeholder="3.00" min={0} />
             </TextField>
             <p className="newrequest-hint">Couriers see this when choosing deliveries.</p>
           </div>
