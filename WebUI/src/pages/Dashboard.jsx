@@ -10,7 +10,6 @@ import {
     pickUpDelivery,
     getCampusLocations
 } from "../api/API.js";
-import { BUILDINGS } from "../constants/buildings.js";
 import { TIP_RANGES } from "../constants/tipRanges.js";
 import ReportDeliveryButton from "../components/ReportDeliveryButton.jsx";
 import "../css/styling.css";
@@ -24,6 +23,7 @@ function Dashboard() {
     const navigate = useNavigate();
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [requests, setRequests] = useState([]);
+    const [buildings, setBuildings] = useState([]);
     const [myRequests, setMyRequests] = useState([]);
     const [reportedPostIds, setReportedPostIds] = useState([]);
     const [reportDataLoaded, setReportDataLoaded] = useState(false);
@@ -161,6 +161,11 @@ function Dashboard() {
     }
 
     useEffect(() => {
+        // Populate the building filter from the locations collection.
+        getCampusLocations()
+            .then((locations) => setBuildings(locations.map((l) => l.name)))
+            .catch(() => setBuildings([]));
+
         // US-08 / Closest to My Location:
         // Load initial requests asynchronously when Dashboard opens.
         getRequests()
@@ -274,7 +279,7 @@ function Dashboard() {
                         <select className="form-select" value={location}
                             onChange={(e) => setLocation(e.target.value)}>
                             <option value="">All Buildings</option>
-                            {BUILDINGS.map((name) => (
+                            {buildings.map((name) => (
                                 <option key={name} value={name}>{name}</option>
                             ))}
                         </select>
