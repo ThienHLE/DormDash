@@ -199,15 +199,6 @@ export async function updateTracking(
   return data.content;
 }
 
-// Get all deliveries created by the logged-in user
-export async function getMyDeliveries() {
-  const { data } = await axios.get(
-    "/api/v1/deliveries/myDeliveries",
-    {
-      withCredentials: true
-    }
-  );
-  return data.content;
 // Get all deliveries requested by the currently logged-in user.
 export async function getMyDeliveries() {
   try {
