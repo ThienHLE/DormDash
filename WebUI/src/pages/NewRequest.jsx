@@ -5,6 +5,8 @@ import "../css/newrequest.css";
 
 export default function NewRequest() {
   const [buildings, setBuildings] = useState([]);
+  const [locationsLoading, setLocationsLoading] = useState(true);
+  const [locationsError, setLocationsError] = useState("");
   const [item, setItem] = useState("");
   const [instructions, setInstructions] = useState("");
   const [pickup, setPickup] = useState("");
@@ -15,17 +17,43 @@ export default function NewRequest() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    getCampusLocations()
-      .then((locations) => setBuildings(locations.map((l) => l.name)))
-      .catch(() => setBuildings([]));
+    let active = true;
+    let pending = false;
+    async function loadLocations() {
+      if (pending) return;
+      pending = true;
+      setLocationsLoading(true);
+      try {
+        const locations = await getCampusLocations();
+        if (active) {
+          setBuildings(locations.map((location) => location.name));
+          setLocationsError("");
+        }
+      } catch (error) {
+        if (active) {
+          setBuildings([]);
+          setLocationsError(error.message || "Could not load campus locations.");
+        }
+      } finally {
+        pending = false;
+        if (active) setLocationsLoading(false);
+      }
+    }
+    void loadLocations();
+    window.addEventListener("focus", loadLocations);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", loadLocations);
+    };
   }, []);
 
   const sameBuilding = pickup !== "" && pickup === delivery;
 
   const isValid =
     item.trim() !== "" &&
-    pickup !== "" &&
-    delivery !== "" &&
+    !locationsLoading &&
+    buildings.includes(pickup) &&
+    buildings.includes(delivery) &&
     !sameBuilding &&
     tip !== "" &&
     Number(tip) >= 0;
@@ -39,6 +67,7 @@ export default function NewRequest() {
   }
 
   async function handleSubmit() {
+    if (!isValid || isSubmitting) return;
     setIsSubmitting(true);
     setMessage("");
 
@@ -81,6 +110,10 @@ export default function NewRequest() {
         </div>
 
         <div className="newrequest-form">
+          {locationsError && <p role="alert" className="newrequest-error">{locationsError}</p>}
+          {!locationsLoading && !locationsError && buildings.length === 0 && (
+            <p role="status">No campus locations are available. Contact an administrator.</p>
+          )}
           <TextField name="item" value={item} onChange={setItem}>
             <Label>What do you need?</Label>
             <Input className="newrequest-input" placeholder="Large iced coffee from the Union" />
@@ -91,10 +124,11 @@ export default function NewRequest() {
               Pickup location
               <select
                 className="newrequest-select"
-                value={pickup}
+                disabled={locationsLoading || buildings.length === 0}
+                value={buildings.includes(pickup) ? pickup : ""}
                 onChange={(e) => setPickup(e.target.value)}
               >
-                <option value="">Choose a building</option>
+                <option value="">{locationsLoading ? "Loading locations..." : "Choose a building"}</option>
                 {buildings.map((name) => (
                   <option key={name} value={name}>{name}</option>
                 ))}
@@ -105,10 +139,11 @@ export default function NewRequest() {
               Delivery location
               <select
                 className="newrequest-select"
-                value={delivery}
+                disabled={locationsLoading || buildings.length === 0}
+                value={buildings.includes(delivery) ? delivery : ""}
                 onChange={(e) => setDelivery(e.target.value)}
               >
-                <option value="">Choose a building</option>
+                <option value="">{locationsLoading ? "Loading locations..." : "Choose a building"}</option>
                 {buildings.map((name) => (
                   <option key={name} value={name}>{name}</option>
                 ))}

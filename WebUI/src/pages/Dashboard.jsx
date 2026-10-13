@@ -24,6 +24,8 @@ function Dashboard() {
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [requests, setRequests] = useState([]);
     const [buildings, setBuildings] = useState([]);
+    const [locationsLoading, setLocationsLoading] = useState(true);
+    const [locationsError, setLocationsError] = useState("");
     const [myRequests, setMyRequests] = useState([]);
     const [reportedPostIds, setReportedPostIds] = useState([]);
     const [reportDataLoaded, setReportDataLoaded] = useState(false);
@@ -77,7 +79,7 @@ function Dashboard() {
     function buildFilters() {
         const { tipMin, tipMax } = TIP_RANGES[tipRange];
         const filters = {};
-        if (location) filters.location = location;
+        if (buildings.includes(location)) filters.location = location;
         if (tipMin !== undefined) filters.tipMin = tipMin;
         if (tipMax !== undefined) filters.tipMax = tipMax;
         // Closest to My Location: Handle distance sorting in the frontend,
@@ -160,12 +162,38 @@ function Dashboard() {
         loadRequests();
     }
 
-    useEffect(() => {
-        // Populate the building filter from the locations collection.
-        getCampusLocations()
-            .then((locations) => setBuildings(locations.map((l) => l.name)))
-            .catch(() => setBuildings([]));
+  useEffect(() => {
+    let active = true;
+    let pending = false;
+    async function loadLocations() {
+      if (pending) return;
+      pending = true;
+      setLocationsLoading(true);
+      try {
+        const locations = await getCampusLocations();
+        if (active) {
+          setBuildings(locations.map((location) => location.name));
+          setLocationsError("");
+        }
+      } catch (error) {
+        if (active) {
+          setBuildings([]);
+          setLocationsError(error.message || "Could not load campus locations.");
+        }
+      } finally {
+        pending = false;
+        if (active) setLocationsLoading(false);
+      }
+    }
+    void loadLocations();
+    window.addEventListener("focus", loadLocations);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", loadLocations);
+    };
+  }, []);
 
+    useEffect(() => {
         // US-08 / Closest to My Location:
         // Load initial requests asynchronously when Dashboard opens.
         getRequests()
@@ -276,13 +304,18 @@ function Dashboard() {
                                 rounded-2xl border border-border bg-surface p-5 shadow-sm">
                     <label className="form-label">
                         Building
-                        <select className="form-select" value={location}
+                        <select className="form-select" value={buildings.includes(location) ? location : ""}
+                            disabled={locationsLoading || buildings.length === 0}
                             onChange={(e) => setLocation(e.target.value)}>
-                            <option value="">All Buildings</option>
+                            <option value="">{locationsLoading ? "Loading locations..." : "All Buildings"}</option>
                             {buildings.map((name) => (
                                 <option key={name} value={name}>{name}</option>
                             ))}
                         </select>
+                        {locationsError && <span role="alert">{locationsError}</span>}
+                        {!locationsLoading && !locationsError && buildings.length === 0 && (
+                            <span role="status">No campus locations available.</span>
+                        )}
                     </label>
 
 
