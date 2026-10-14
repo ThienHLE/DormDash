@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Tabs } from "@heroui/react";
+import { Button, Modal, Tabs } from "@heroui/react";
 
-import { getCurrentUser } from "../api/API.js";
+import { fundUser, getCurrentUser } from "../api/API.js";
 import OrderHistory from "../components/profile/OrderHistory.jsx";
 import DeliveryHistory from "../components/profile/DeliveryHistory.jsx";
 import DisputesHistory from "../components/profile/DisputesHistory.jsx";
@@ -13,6 +13,32 @@ function Profile() {
 
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isFundingOpen, setIsFundingOpen] = useState(false);
+  const [fundAmount, setFundAmount] = useState("");
+  const [fundError, setFundError] = useState("");
+  const [funding, setFunding] = useState(false);
+
+  async function addFunds(event) {
+    event.preventDefault();
+    setFundError("");
+    const amount = Number(fundAmount);
+    const fund = Math.round(amount * 100);
+    if (!Number.isFinite(amount) || fund <= 0 || Math.abs(amount * 100 - fund) > 1e-7) {
+      setFundError("Enter a valid amount with up to two decimal places.");
+      return;
+    }
+
+    setFunding(true);
+    try {
+      setCurrentUser(await fundUser(fund));
+      setFundAmount("");
+      setIsFundingOpen(false);
+    } catch (error) {
+      setFundError(error.message);
+    } finally {
+      setFunding(false);
+    }
+  }
 
 
   useEffect(() => {
@@ -83,6 +109,22 @@ function Profile() {
                 {currentUser.email}
               </p>
 
+              <div className="mt-4 flex items-center gap-3">
+                <p className="text-lg font-semibold text-ink">
+                  Balance: ${((currentUser.balance ?? 0) / 100).toFixed(2)}
+                </p>
+                <Button
+                  variant="primary"
+                  onPress={() => {
+                    setFundError("");
+                    setIsFundingOpen(true);
+                  }}
+                  className="bg-primary text-white"
+                >
+                  Add Funds
+                </Button>
+              </div>
+
             </div>
 
 
@@ -108,6 +150,60 @@ function Profile() {
         </div>
 
       </div>
+
+      <Modal>
+        <Modal.Backdrop
+          isOpen={isFundingOpen}
+          onOpenChange={(open) => {
+            if (!open && !funding) setIsFundingOpen(false);
+          }}
+        >
+          <Modal.Container>
+            <Modal.Dialog>
+              <form onSubmit={addFunds}>
+                <Modal.Header>
+                  <Modal.Heading>Add Funds</Modal.Heading>
+                </Modal.Header>
+                <Modal.Body>
+                  <label htmlFor="fund-amount" className="mb-1 block text-sm font-semibold text-ink">
+                    Amount ($)
+                  </label>
+                  <input
+                    id="fund-amount"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    required
+                    value={fundAmount}
+                    onChange={(event) => setFundAmount(event.target.value)}
+                    className="w-full rounded-lg border border-border bg-surface p-3 text-sm text-ink"
+                    placeholder="0.00"
+                  />
+                  {fundError && <p role="alert" className="mt-2 text-sm text-red-700">{fundError}</p>}
+                </Modal.Body>
+                <Modal.Footer>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    isDisabled={funding || !fundAmount}
+                    className="bg-primary text-white"
+                  >
+                    {funding ? "Adding..." : "Add Funds"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    isDisabled={funding}
+                    onPress={() => setIsFundingOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                </Modal.Footer>
+              </form>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
 
 
 

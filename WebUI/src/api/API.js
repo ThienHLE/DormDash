@@ -63,6 +63,14 @@ export async function unverifyUser(id) {
   return (await request(`/unverifyUser/${encodeURIComponent(id)}`, { method: "PATCH" })).user;
 }
 
+export async function fundUser(fund) {
+  return (await request("/me/fund", { method: "POST", body: { fund } })).user;
+}
+
+export async function refundUser(id, amount) {
+  return (await request(`/refundUser/${encodeURIComponent(id)}`, { method: "POST", body: { amount } })).user;
+}
+
 // US-08: Retrieve available requests with optional filters and sorting.
 export async function getRequests(filters = {}) {
   const { data } = await axios.post(
