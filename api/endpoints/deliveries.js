@@ -59,8 +59,31 @@ router.post('/createDeliveryRequest', async (req, res) => {
         // Gets the shared DormDash database connection.
         const db = getDb();
 
+        // Checks the requester has enough balance to cover the tip.
+        const users = db.collection('users');
+        const requester = await users.findOne({ _id: delivery.requesterId });
+        if (typeof requester?.balance !== 'number') {
+            // Creates the missing balance field (default 0, as in signup) and rejects.
+            await users.updateOne({ _id: delivery.requesterId }, { $set: { balance: 0 } });
+            return res.status(402).json({
+                statusCode: 402,
+                statusMessage: 'Insufficient funds.',
+                content: {}
+            });
+        }
+        if (requester.balance < tip) {
+            return res.status(402).json({
+                statusCode: 402,
+                statusMessage: 'Insufficient funds.',
+                content: {}
+            });
+        }
+
         // Saves the new delivery in the deliveries collection.
         const result = await db.collection('deliveries').insertOne(delivery);
+
+        // Charges the tip to the requester now.
+        await users.updateOne({ _id: delivery.requesterId }, { $inc: { balance: -tip } });
 
         // Returns 201 Created after the delivery is successfully saved.
         return res.status(201).json({
