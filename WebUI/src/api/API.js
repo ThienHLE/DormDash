@@ -332,3 +332,26 @@ export async function getCampusLocations() {
     );
   }
 }
+// Estimated Delivery Time: Get the walking route and estimated duration.
+export async function getDeliveryWalkingRoute(deliveryId) {
+  try {
+    const { data } = await axios.post(
+      "/api/v1/maps/delivery",
+      { deliveryId },
+      { withCredentials: true }
+    );
+
+    return data.content;
+  } catch (error) {
+    if (!error.response) {
+      throw new ApiError(0, "Could not reach the server");
+    }
+
+    const body = error.response.data;
+
+    throw new ApiError(
+      error.response.status,
+      body?.statusMessage ?? "Could not retrieve estimated delivery time"
+    );
+  }
+}
