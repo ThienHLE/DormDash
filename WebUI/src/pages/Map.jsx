@@ -88,6 +88,14 @@ function Map() {
         );
         map.setMaxBounds(bounds);
 
+        // Creating a marker for carrier
+        const carrierIcon = L.divIcon({
+            html: '<div style="font-size: 30px;">🚶‍♂️</div>',
+            className: "carrier-icon",
+            iconSize: [35, 35],
+            iconAnchor: [17, 17]
+        });
+        
         // Stores the carrier markers
         const carrierMarkers = {};
 
@@ -142,7 +150,7 @@ function Map() {
                     carrierMarkers[delivery._id] = L.marker([
                         latitude,
                         longitude
-                    ])
+                        ],{ icon: carrierIcon })
                         .addTo(map)
                         .bindPopup(
                             "Carrier for: " + delivery.item

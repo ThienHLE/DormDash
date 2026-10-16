@@ -62,7 +62,6 @@ function MapManagement() {
 
             marker.bindPopup(popup);
 
-
             // Delete marker when button is clicked
             deleteButton.addEventListener("click", async function () {
 

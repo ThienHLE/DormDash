@@ -8,6 +8,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+      test: {
+        environment: 'jsdom',
+        restoreMocks: true
+  },
   server: {
     // Forwards API calls to the backend so the session cookie works in dev.
     proxy: {
