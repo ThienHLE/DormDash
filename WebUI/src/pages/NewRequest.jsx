@@ -1,19 +1,10 @@
-import { BUILDINGS } from "../constants/buildings.js";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button, Input, Label, TextField } from "@heroui/react";
-import { createDelivery, getCurrentUser } from "../api/API.js";
+import { createDelivery, getCurrentUser, getCampusLocations } from "../api/API.js";
 import "../css/newrequest.css";
 
-// Temporary list until there's a buildings endpoint
-// this has moved to a separate file in constants/buildings.js -AE [10-05]
-// const BUILDINGS = [
-//   "Boreham Library",
-//   "Smith-Pendergraft Campus Center",
-//   "Lion's Den",
-//   "Sebastian Commons",
-// ];
-
 export default function NewRequest() {
+  const [buildings, setBuildings] = useState([]);
   const [item, setItem] = useState("");
   const [instructions, setInstructions] = useState("");
   const [pickup, setPickup] = useState("");
@@ -22,6 +13,12 @@ export default function NewRequest() {
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    getCampusLocations()
+      .then((locations) => setBuildings(locations.map((l) => l.name)))
+      .catch(() => setBuildings([]));
+  }, []);
 
   const sameBuilding = pickup !== "" && pickup === delivery;
 
@@ -98,7 +95,7 @@ export default function NewRequest() {
                 onChange={(e) => setPickup(e.target.value)}
               >
                 <option value="">Choose a building</option>
-                {BUILDINGS.map((name) => (
+                {buildings.map((name) => (
                   <option key={name} value={name}>{name}</option>
                 ))}
               </select>
@@ -112,7 +109,7 @@ export default function NewRequest() {
                 onChange={(e) => setDelivery(e.target.value)}
               >
                 <option value="">Choose a building</option>
-                {BUILDINGS.map((name) => (
+                {buildings.map((name) => (
                   <option key={name} value={name}>{name}</option>
                 ))}
               </select>

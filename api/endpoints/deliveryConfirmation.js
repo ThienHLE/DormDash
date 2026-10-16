@@ -172,6 +172,8 @@ router.post('/confirmCode', requireLogin, async (req, res) => {
             { $set: { status: 'delivered', updatedAt: new Date() } }
         );
 
+        await db.collection('users').updateOne({ _id: delivery.courierId }, { $inc: { balance: delivery.tip } });
+
         return res.status(200).json({
             statusCode: 200,
             statusMessage: 'Delivery confirmed successfully.',

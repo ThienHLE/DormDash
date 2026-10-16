@@ -1,17 +1,8 @@
 import { useEffect, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-//Default makers
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-delete L.Icon.Default.prototype._getIconUrl;
+import "../../utils/leafletIcons";
 
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: markerIcon2x,
-    iconUrl: markerIcon,
-    shadowUrl: markerShadow,
-});
 import {
     getLocations,
     createLocation,

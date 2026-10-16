@@ -1,15 +1,76 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react"; // Estimated Delivery Time: Import useRef to track the latest API request and ignore outdated responses.
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "../utils/leafletIcons";
 import {
     getLocations,
     getMyDeliveries,
-    getCarrierLocation
+    getCarrierLocation,
+    //for Estimated Delivery Time
+    getDeliveryWalkingRoute
 } from "../api/API";
+// Estimated Delivery Time: Convert walking duration from seconds to minutes.
+import { calculateEstimatedMinutes } from "../utils/estimatedDeliveryTime.js";
 
 function Map() {
 
     const [status, setStatus] = useState("Loading map...");
+    // Estimated Delivery Time: Store deliveries and the selected delivery.
+    const [deliveries, setDeliveries] = useState([]);
+    const [selectedDeliveryId, setSelectedDeliveryId] = useState("");
+
+    // Store the estimated walking time and API request status.
+    const [estimatedMinutes, setEstimatedMinutes] = useState(null);
+    const [etaLoading, setEtaLoading] = useState(false);
+    const [etaError, setEtaError] = useState("");
+    // Estimated Delivery Time: Identify the latest API request.
+    const etaRequestId = useRef(0);
+
+    // Estimated Delivery Time: Retrieve walking time for the selected delivery.
+    async function loadEstimatedTime(deliveryId) {
+        // Give each selection a unique request number.
+        const requestId = ++etaRequestId.current;
+
+        setEstimatedMinutes(null);
+        setEtaError("");
+
+        if (!deliveryId) {
+            setEtaLoading(false);
+            return;
+        }
+
+        setEtaLoading(true);
+
+        try {
+            const result = await getDeliveryWalkingRoute(deliveryId);
+
+            // Ignore responses from older selections.
+            if (requestId !== etaRequestId.current) return;
+
+            const minutes = calculateEstimatedMinutes(
+                result.route?.durationSeconds
+            );
+
+            if (minutes === null) {
+                throw new Error("Estimated walking time is unavailable.");
+            }
+
+            setEstimatedMinutes(minutes);
+        } catch (error) {
+            // Ignore errors from older requests.
+            if (requestId !== etaRequestId.current) return;
+
+            setEtaError(
+                error.message || "Could not retrieve estimated walking time."
+            );
+        } finally {
+            // Only the latest request can change the loading state.
+            if (requestId === etaRequestId.current) {
+                setEtaLoading(false);
+            }
+        }
+    }
+
 
     useEffect(() => {
         const map = L.map("map", {
@@ -130,6 +191,8 @@ function Map() {
 
                 // Get the user's deliveries
                 const deliveries = await loadDeliveries();
+                // Estimated Delivery Time: Store deliveries for the selection dropdown.
+                setDeliveries(deliveries);
 
                 // Show pickup and dropoff markers
                 deliveries.forEach(function (delivery) {
@@ -189,7 +252,48 @@ function Map() {
         <div className="page">
             <div className="page-content">
                 <h1>Map</h1>
+                {/* Estimated Delivery Time: Select a delivery and display walking time. */}
+                <div className="mb-4 rounded-xl border border-border bg-surface p-4">
+                    <h2>Estimated Delivery Time</h2>
 
+                    <label htmlFor="eta-delivery" className="form-label">
+                        Select a delivery
+                    </label>
+
+                    <select
+                        id="eta-delivery"
+                        className="form-select"
+                        value={selectedDeliveryId}
+                        onChange={(event) => {
+                            const deliveryId = event.target.value;
+                            setSelectedDeliveryId(deliveryId);
+                            loadEstimatedTime(deliveryId);
+                        }}
+                    >
+                        <option value="">Choose a delivery</option>
+
+                        {deliveries.map((delivery) => (
+                            <option key={delivery._id} value={delivery._id}>
+                                {delivery.item} - {delivery.pickupLocation} to {delivery.deliveryLocation}
+                            </option>
+                        ))}
+                    </select>
+
+                    {etaLoading && <p>Calculating estimated walking time...</p>}
+
+                    {!etaLoading && etaError && (
+                        <p role="alert" className="text-red-600">
+                            {etaError}
+                        </p>
+                    )}
+
+                    {!etaLoading && !etaError && estimatedMinutes !== null && (
+                        <p>
+                            <strong>Estimated pickup-to-drop-off walking time: </strong>
+                            {estimatedMinutes} {estimatedMinutes === 1 ? "minute" : "minutes"}
+                        </p>
+                    )}
+                </div>
                 <div
                     id="map"
                     style={{

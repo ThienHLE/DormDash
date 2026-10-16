@@ -21,7 +21,7 @@ router.post("/signup", async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const now = new Date();
-    const user = {email, passwordHash, firstName, lastName, admin: false, verified: false, createdAt: now, updatedAt: now};
+    const user = {email, passwordHash, firstName, lastName, balance: 0, admin: false, verified: false, createdAt: now, updatedAt: now};
     const { insertedId } = await users.insertOne(user);
     req.session.user = sessionUser({ ...user, _id: insertedId });
     res.status(201).json({ statusCode: 201, statusMessage: "Created", content: { user: req.session.user } });
@@ -45,10 +45,13 @@ router.post("/logout", (req, res) => {
     });
 });
 
-router.get("/me", (req, res) => {
+router.get("/me", async (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({ statusCode: 401, statusMessage: "Unauthorized", content: { message: "Not logged in" } });
     }
+    const user = await getDb().collection('users').findOne({ _id: new ObjectId(req.session.user._id) });
+    const balance = user?.balance ?? 0;
+    req.session.user = { ...req.session.user, balance };
     res.json({ statusCode: 200, statusMessage: "OK", content: { user: req.session.user } });
 });
 
@@ -111,6 +114,35 @@ router.patch("/unverifyUser/:id", requireLogin, async (req, res) => {
     const updated = await users.findOneAndUpdate(
         { _id: new ObjectId(req.params.id) },
         { $set: { verified: false, updatedAt: new Date() } },
+        { returnDocument: 'after', projection: publicProjection }
+    );
+    if (!updated) return error(res, 404, "Not Found", "User not found");
+    res.json({ statusCode: 200, statusMessage: "OK", content: { user: sessionUser(updated) } });
+});
+
+router.post("/me/fund", requireLogin, async (req, res) => {
+    const { fund } = req.body ?? {};
+    if (!Number.isInteger(fund) || fund <= 0) return error(res, 400, "Bad Request", "Fund must be a positive integer in cents");
+    const updated = await getDb().collection('users').findOneAndUpdate(
+        { _id: new ObjectId(req.session.user._id) },
+        { $inc: { balance: fund }, $set: { updatedAt: new Date() } },
+        { returnDocument: 'after' }
+    );
+    if (!updated) return error(res, 404, "Not Found", "User not found");
+    req.session.user = sessionUser(updated);
+    res.json({ statusCode: 200, statusMessage: "OK", content: { user: req.session.user } });
+});
+
+router.post("/refundUser/:id", requireLogin, async (req, res) => {
+    const users = getDb().collection('users');
+    const requester = await users.findOne({ _id: new ObjectId(req.session.user._id) });
+    if (!requester?.admin) return error(res, 403, "Forbidden", "Admin access required");
+    if (!ObjectId.isValid(req.params.id)) return error(res, 400, "Bad Request", "User ID must be a valid MongoDB ObjectId");
+    const { amount } = req.body ?? {};
+    if (!Number.isInteger(amount) || amount <= 0) return error(res, 400, "Bad Request", "Amount must be a positive integer in cents");
+    const updated = await users.findOneAndUpdate(
+        { _id: new ObjectId(req.params.id) },
+        { $inc: { balance: amount }, $set: { updatedAt: new Date() } },
         { returnDocument: 'after', projection: publicProjection }
     );
     if (!updated) return error(res, 404, "Not Found", "User not found");

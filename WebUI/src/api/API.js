@@ -63,6 +63,14 @@ export async function unverifyUser(id) {
   return (await request(`/unverifyUser/${encodeURIComponent(id)}`, { method: "PATCH" })).user;
 }
 
+export async function fundUser(fund) {
+  return (await request("/me/fund", { method: "POST", body: { fund } })).user;
+}
+
+export async function refundUser(id, amount) {
+  return (await request(`/refundUser/${encodeURIComponent(id)}`, { method: "POST", body: { amount } })).user;
+}
+
 // US-08: Retrieve available requests with optional filters and sorting.
 export async function getRequests(filters = {}) {
   const { data } = await axios.post(
@@ -300,4 +308,50 @@ export async function deleteDisputePost(disputeId) {
   return requestDisputes(`/${encodeURIComponent(disputeId)}/post`, {
     method: "DELETE",
   });
+}
+// Closest to My Location: Retrieve active campus locations and GPS coordinates.
+export async function getCampusLocations() {
+  try {
+    const { data } = await axios.post(
+      "/api/v1/locations/list",
+      {},
+      { withCredentials: true }
+    );
+
+    return data.content.locations;
+  } catch (error) {
+    if (!error.response) {
+      throw new ApiError(0, "Could not reach the server");
+    }
+
+    const body = error.response.data;
+
+    throw new ApiError(
+      error.response.status,
+      body?.statusMessage ?? "Could not load campus locations"
+    );
+  }
+}
+// Estimated Delivery Time: Get the walking route and estimated duration.
+export async function getDeliveryWalkingRoute(deliveryId) {
+  try {
+    const { data } = await axios.post(
+      "/api/v1/maps/delivery",
+      { deliveryId },
+      { withCredentials: true }
+    );
+
+    return data.content;
+  } catch (error) {
+    if (!error.response) {
+      throw new ApiError(0, "Could not reach the server");
+    }
+
+    const body = error.response.data;
+
+    throw new ApiError(
+      error.response.status,
+      body?.statusMessage ?? "Could not retrieve estimated delivery time"
+    );
+  }
 }

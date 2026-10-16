@@ -34,6 +34,7 @@ const fakeDb = {
             const doc = users.find((u) => matches(u, filter));
             if (!doc) return null;
             Object.assign(doc, update.$set);
+            for (const [key, amount] of Object.entries(update.$inc ?? {})) doc[key] = (doc[key] ?? 0) + amount;
             return project(doc, opts?.projection);
         }
     })
@@ -169,6 +170,15 @@ describe('auth', () => {
         it('rejects empty body', async () => {
             const res = await request(app).post('/api/v1/auth/login');
             expect(res.status).toBe(401);
+        });
+    });
+
+    describe('GET /me balance', () => {
+        it('returns the current balance, not the login snapshot', async () => {
+            const { agent } = await loggedInAgent();
+            expect((await agent.get('/api/v1/auth/me')).body.content.user.balance).toBe(0);
+            users[0].balance = 750;
+            expect((await agent.get('/api/v1/auth/me')).body.content.user.balance).toBe(750);
         });
     });
 
@@ -366,6 +376,78 @@ describe('auth', () => {
             const admin = await adminAgent();
             const res = await admin.patch('/api/v1/auth/unverifyUser/not-an-id');
             expect(res.status).toBe(400);
+        });
+    });
+
+    describe('POST /me/fund', () => {
+        it('requires login', async () => {
+            const res = await request(app).post('/api/v1/auth/me/fund').send({ fund: 500 });
+            expect(res.status).toBe(401);
+        });
+
+        it('adds the fund to the balance', async () => {
+            const { agent, id } = await loggedInAgent();
+            const first = await agent.post('/api/v1/auth/me/fund').send({ fund: 500 });
+            expect(first.status).toBe(200);
+            expect(first.body.content.user).toMatchObject({ _id: id, balance: 500 });
+            expect(first.body.content.user.passwordHash).toBeUndefined();
+
+            const second = await agent.post('/api/v1/auth/me/fund').send({ fund: 250 });
+            expect(second.body.content.user.balance).toBe(750);
+            expect(users[0].balance).toBe(750);
+            expect((await agent.get('/api/v1/auth/me')).body.content.user.balance).toBe(750);
+        });
+
+        it.each([undefined, 0, -5, 1.5, '500'])('rejects fund %p', async (fund) => {
+            const { agent } = await loggedInAgent();
+            const res = await agent.post('/api/v1/auth/me/fund').send({ fund });
+            expect(res.status).toBe(400);
+            expect(users[0].balance).toBe(0);
+        });
+    });
+
+    describe('POST /refundUser/:id', () => {
+        it('requires login', async () => {
+            const res = await request(app).post(`/api/v1/auth/refundUser/${missingId}`).send({ amount: 100 });
+            expect(res.status).toBe(401);
+        });
+
+        it('forbids non-admins', async () => {
+            const { agent, id } = await loggedInAgent();
+            const res = await agent.post(`/api/v1/auth/refundUser/${id}`).send({ amount: 100 });
+            expect(res.status).toBe(403);
+            expect(users[0].balance).toBe(0);
+        });
+
+        it('lets an admin add to a user balance', async () => {
+            const { id } = await loggedInAgent();
+            const admin = await adminAgent();
+
+            const res = await admin.post(`/api/v1/auth/refundUser/${id}`).send({ amount: 250 });
+            expect(res.status).toBe(200);
+            expect(res.body.content.user).toMatchObject({ _id: id, balance: 250 });
+            expect(res.body.content.user.passwordHash).toBeUndefined();
+            expect(users.find((u) => sameId(u._id, id)).balance).toBe(250);
+        });
+
+        it('rejects an invalid id', async () => {
+            const admin = await adminAgent();
+            const res = await admin.post('/api/v1/auth/refundUser/not-an-id').send({ amount: 100 });
+            expect(res.status).toBe(400);
+        });
+
+        it.each([undefined, 0, -5, 1.5])('rejects amount %p', async (amount) => {
+            const { id } = await loggedInAgent();
+            const admin = await adminAgent();
+            const res = await admin.post(`/api/v1/auth/refundUser/${id}`).send({ amount });
+            expect(res.status).toBe(400);
+            expect(users.find((u) => sameId(u._id, id)).balance).toBe(0);
+        });
+
+        it('returns 404 for an unknown user', async () => {
+            const admin = await adminAgent();
+            const res = await admin.post(`/api/v1/auth/refundUser/${missingId}`).send({ amount: 100 });
+            expect(res.status).toBe(404);
         });
     });
 });

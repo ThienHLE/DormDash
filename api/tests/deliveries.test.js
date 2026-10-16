@@ -8,6 +8,8 @@ const mockInsertOne = jest.fn();
 const mockFindOneAndUpdate = jest.fn();
 // US-05/US-06 follow-up: Fake MongoDB lookup used to create a logged-in test courier.
 const mockFindOne = jest.fn();
+// Fake MongoDB function for balance updates.
+const mockUpdateOne = jest.fn();
 // US-05/US-06 follow-up: Fake MongoDB functions for retrieving a requester's deliveries.
 const mockFind = jest.fn();
 const mockSort = jest.fn();
@@ -19,6 +21,7 @@ jest.unstable_mockModule('../db.js', () => ({
             insertOne: mockInsertOne,
             findOneAndUpdate: mockFindOneAndUpdate,
             findOne: mockFindOne,
+            updateOne: mockUpdateOne,
             find: mockFind
         }))
     })),
@@ -38,6 +41,7 @@ describe('POST /api/v1/deliveries/createDeliveryRequest', () => {
         mockInsertOne.mockReset();
         mockFindOneAndUpdate.mockReset();
         mockFindOne.mockReset();
+        mockUpdateOne.mockReset();
         mockFind.mockReset();
         mockSort.mockReset();
         mockToArray.mockReset();
@@ -53,6 +57,9 @@ describe('POST /api/v1/deliveries/createDeliveryRequest', () => {
             deliveryLocation: 'Library',
             tip: 300
         };
+
+        // Pretends the requester has enough balance to cover the tip.
+        mockFindOne.mockResolvedValueOnce({ balance: 1000 });
 
         // Pretends MongoDB successfully inserted the delivery.
         mockInsertOne.mockResolvedValue({
@@ -85,6 +92,55 @@ describe('POST /api/v1/deliveries/createDeliveryRequest', () => {
 
         // Verifies that MongoDB insertOne was called once.
         expect(mockInsertOne).toHaveBeenCalledTimes(1);
+
+        // The tip is charged to the requester at request time.
+        expect(mockUpdateOne).toHaveBeenCalledWith(
+            { _id: expect.anything() },
+            { $inc: { balance: -300 } }
+        );
+    });
+
+    // Tests that a requester with no balance field is rejected and given one.
+    it('rejects a request when the requester has no balance field', async () => {
+        mockFindOne.mockResolvedValueOnce({ email: 'a@school.edu' });
+
+        const res = await request(app)
+            .post('/api/v1/deliveries/createDeliveryRequest')
+            .send({
+                requesterId: '507f1f77bcf86cd799439011',
+                item: 'Coffee',
+                pickupLocation: 'Student Center',
+                deliveryLocation: 'Library',
+                tip: 300
+            });
+
+        expect(res.status).toBe(402);
+        expect(res.body.statusMessage).toBe('Insufficient funds.');
+        expect(mockUpdateOne).toHaveBeenCalledWith(
+            { _id: expect.anything() },
+            { $set: { balance: 0 } }
+        );
+        expect(mockInsertOne).not.toHaveBeenCalled();
+    });
+
+    // Tests that a balance smaller than the tip is rejected.
+    it('rejects a request when the balance is less than the tip', async () => {
+        mockFindOne.mockResolvedValueOnce({ balance: 100 });
+
+        const res = await request(app)
+            .post('/api/v1/deliveries/createDeliveryRequest')
+            .send({
+                requesterId: '507f1f77bcf86cd799439011',
+                item: 'Coffee',
+                pickupLocation: 'Student Center',
+                deliveryLocation: 'Library',
+                tip: 300
+            });
+
+        expect(res.status).toBe(402);
+        expect(res.body.statusMessage).toBe('Insufficient funds.');
+        expect(mockUpdateOne).not.toHaveBeenCalled();
+        expect(mockInsertOne).not.toHaveBeenCalled();
     });
 
     // Tests that a request with missing required information is rejected.
@@ -150,6 +206,9 @@ describe('POST /api/v1/deliveries/createDeliveryRequest', () => {
             deliveryLocation: 'Library',
             tip: 300
         };
+
+        // Requester has enough balance, so the insert is reached.
+        mockFindOne.mockResolvedValueOnce({ balance: 1000 });
 
         // Pretends that MongoDB failed.
         mockInsertOne.mockRejectedValue(

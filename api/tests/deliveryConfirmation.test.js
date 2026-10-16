@@ -178,7 +178,9 @@ it('confirms a picked-up delivery with the correct code', async () => {
     // confirmCode: find a picked-up delivery assigned to this courier.
     mockFindOne.mockResolvedValueOnce({
         _id: new ObjectId(deliveryId),
+        requesterId: new ObjectId('507f1f77bcf86cd799439011'),
         courierId: new ObjectId(courierId),
+        tip: 300,
         status: 'picked_up'
     });
 
@@ -202,6 +204,12 @@ it('confirms a picked-up delivery with the correct code', async () => {
         modifiedCount: 1
     });
 
+    // Third updateOne credits the courier's balance.
+    mockUpdateOne.mockResolvedValueOnce({
+        acknowledged: true,
+        modifiedCount: 1
+    });
+
     const res = await agent
         .post('/api/v1/deliveryConfirmation/confirmCode')
         .send({
@@ -217,7 +225,8 @@ it('confirms a picked-up delivery with the correct code', async () => {
     expect(res.body.content.confirmed).toBe(true);
 
     // Verify that the delivery was changed from picked_up to delivered.
-    expect(mockUpdateOne).toHaveBeenLastCalledWith(
+    expect(mockUpdateOne).toHaveBeenNthCalledWith(
+        2,
         {
             _id: new ObjectId(deliveryId),
             status: 'picked_up'
@@ -228,6 +237,13 @@ it('confirms a picked-up delivery with the correct code', async () => {
                 updatedAt: expect.any(Date)
             }
         }
+    );
+
+    // The requester was already charged at request time, so only the courier is credited.
+    expect(mockUpdateOne).toHaveBeenCalledTimes(3);
+    expect(mockUpdateOne).toHaveBeenLastCalledWith(
+        { _id: new ObjectId(courierId) },
+        { $inc: { balance: 300 } }
     );
 
 });
